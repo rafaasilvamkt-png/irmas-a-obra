@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Irmãs à Obra — Agendamento de Visitas</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeece6;
+    --text: #1a1a18; --text2: #6b6b68; --text3: #a0a09d;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --info-bg: #e6f1fb; --info: #185fa5;
+    --success-bg: #eaf3de; --success: #3b6d11;
+    --warn-bg: #faeeda; --warn: #854f0b;
+    --danger-bg: #fcebeb; --danger: #a32d2d;
+    --blue: #378ADD; --blue-dark: #042C53;
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0ede6; --text2: #a0a09d; --text3: #6b6b68;
+      --border: rgba(255,255,255,0.10); --border2: rgba(255,255,255,0.18);
+      --info-bg: #0c2d4a; --info: #85b7eb;
+      --success-bg: #172e0a; --success: #97c459;
+      --warn-bg: #2e1e04; --warn: #ef9f27;
+      --danger-bg: #2e0d0d; --danger: #f09595;
+      --blue: #378ADD; --blue-dark: #e6f1fb;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 15px; min-height: 100vh; display: flex; justify-content: center; }
+  #app { width: 100%; max-width: 480px; background: var(--bg3); min-height: 100vh; position: relative; }
+  .screen { display: none; }
+  .screen.show { display: block; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: .75rem; }
+  .field-group { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; }
+  .field-row { display: flex; align-items: center; padding: 11px 14px; border-bottom: 0.5px solid var(--border); gap: 10px; }
+  .field-row:last-child { border-bottom: none; }
+  .field-row label { font-size: 13px; color: var(--text2); min-width: 88px; flex-shrink: 0; }
+  .field-row input, .field-row select { flex: 1; border: none; background: transparent; font-size: 15px; color: var(--text); outline: none; font-family: var(--font); min-width: 0; }
+  .field-row input[type=number] { width: 60px; flex: none; text-align: right; }
+  .field-row input::placeholder { color: var(--text3); }
+  .slabel { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; margin-top: 1.25rem; }
+  .slabel:first-child { margin-top: 0; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; font-family: var(--font); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--info-bg); color: var(--info); border-color: transparent; }
+  .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+  .btn-success { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .btn-warning { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: .75rem; }
+  .tab-bar { display: flex; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .tab { flex: 1; padding: 12px 4px; font-size: 12px; text-align: center; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+  .page { display: none; padding: 1rem; }
+  .page.active { display: block; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 1rem; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .topbar-title { font-size: 14px; font-weight: 600; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--radius); font-weight: 500; }
+  .badge-info { background: var(--info-bg); color: var(--info); }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-warn { background: var(--warn-bg); color: var(--warn); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+  .banner { font-size: 13px; padding: 10px 14px; border-radius: var(--radius); margin-bottom: .75rem; display: flex; align-items: center; gap: 7px; }
+  .banner-warn { background: var(--warn-bg); color: var(--warn); }
+  .banner-info { background: var(--info-bg); color: var(--info); }
+  .err { font-size: 12px; color: var(--danger); margin-top: 6px; min-height: 16px; }
+  .ok { font-size: 12px; color: var(--success); margin-top: 6px; min-height: 16px; }
+
+  /* OVERLAY MODAL */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 5px; }
+  .modal .msub { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+  .modal input { width: 100%; margin-bottom: 10px; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); font-family: var(--font); font-size: 15px; outline: none; }
+  .modal input:focus { border-color: var(--blue); }
+  .modal input.invalid { border-color: var(--danger); }
+  .modal input::placeholder { color: var(--text3); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .modal-actions button { flex: 1; padding: 11px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; font-family: var(--font); font-size: 14px; font-weight: 500; }
+  .modal-actions .cbtn { background: var(--blue); color: var(--blue-dark); border-color: transparent; }
+  .modal-actions .cbtn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* HOME CORRETOR */
+  .home-header { padding: 1.25rem 1rem 1rem; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .home-brand { font-size: 18px; font-weight: 700; }
+  .home-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .adm-btn { background: transparent; border: 0.5px solid var(--border); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); flex-shrink: 0; }
+  .home-body { padding: 1rem; }
+
+  /* CARD EVENTO CORRETOR */
+  .ev-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; cursor: pointer; transition: border-color .15s, transform .1s; }
+  .ev-card:hover { border-color: var(--border2); }
+  .ev-card:active { transform: scale(0.99); }
+  .ev-card.closed { opacity: .55; cursor: default; }
+  .ev-cover { width: 100%; height: 170px; background: var(--bg2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+  .ev-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ev-cover-ph { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text3); }
+  .ev-cover-ph i { font-size: 36px; }
+  .ev-cover-ph span { font-size: 12px; }
+  .ev-cover-badge { position: absolute; top: 10px; right: 10px; }
+  .ev-body { padding: 1rem 1.25rem; }
+  .ev-title { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+  .ev-unidade { font-size: 14px; color: var(--text2); margin-bottom: .75rem; }
+  .ev-meta { display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem; }
+  .ev-meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+  .ev-meta-row i { font-size: 15px; color: var(--text3); flex-shrink: 0; }
+  .ev-cta { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--blue); color: var(--blue-dark); font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+  .ev-cta:active { opacity: .85; }
+
+  /* TELA DETALHE */
+  .detail-back { display: flex; align-items: center; gap: 10px; padding: 12px 1rem; border-bottom: 0.5px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10; }
+  .detail-back button { background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 7px 12px; cursor: pointer; color: var(--text); font-family: var(--font); font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  .detail-cover { width: 100%; height: 210px; background: var(--bg2); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .detail-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .detail-cover-ph { font-size: 56px; color: var(--text3); }
+  .detail-info { padding: 1.25rem 1rem 1rem; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+  .detail-title { font-size: 22px; font-weight: 700; margin-bottom: 3px; }
+  .detail-unidade { font-size: 15px; color: var(--text2); margin-bottom: .75rem; }
+  .detail-meta { display: flex; flex-direction: column; gap: 6px; }
+  .detail-meta-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text2); }
+  .detail-meta-row i { font-size: 16px; color: var(--text3); }
+  .slots-section { padding: 1rem; }
+  .slot-card { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+  .slot-card.full { opacity: .4; }
+  .slot-time { font-size: 16px; font-weight: 600; }
+  .slot-status { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .slot-btn { font-size: 14px; padding: 9px 18px; border-radius: var(--radius); border: none; font-family: var(--font); font-weight: 600; cursor: pointer; }
+  .slot-btn.avail { background: var(--blue); color: var(--blue-dark); }
+  .slot-btn.avail:disabled { opacity: .4; cursor: not-allowed; }
+  .slot-btn.lotado { background: var(--bg2); color: var(--text3); cursor: not-allowed; }
+
+  /* SUCESSO */
+  .success-box { text-align: center; padding: 3rem 1.5rem; background: var(--bg); }
+  .success-ico { font-size: 52px; color: var(--success); margin-bottom: 14px; }
+  .success-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .success-box p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .whatsapp-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 1.25rem; padding: 13px; border-radius: var(--radius); border: none; background: #25D366; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+
+  /* ADMIN CARDS */
+  .adm-ev-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: .75rem; }
+  .adm-ev-head { display: flex; gap: 12px; padding: 12px 14px; align-items: center; }
+  .adm-thumb { width: 54px; height: 54px; border-radius: var(--radius); overflow: hidden; flex-shrink: 0; background: var(--bg2); display: flex; align-items: center; justify-content: center; color: var(--text3); }
+  .adm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .adm-ev-info { flex: 1; min-width: 0; }
+  .adm-ev-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .adm-ev-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .adm-ev-actions { border-top: 0.5px solid var(--border); padding: .75rem 1rem; display: flex; gap: 7px; flex-wrap: wrap; }
+  .adm-slot-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-top: 0.5px solid var(--border); }
+  .adm-slot-info { font-size: 13px; }
+  .adm-slot-info span { color: var(--text2); font-size: 12px; margin-left: 6px; }
+  .adm-vagas-input { width: 50px; padding: 5px 7px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 13px; text-align: center; background: var(--bg2); color: var(--text); font-family: var(--font); outline: none; }
+
+  /* LISTA */
+  .list-header { display: grid; grid-template-columns: 64px 1fr 84px 64px; gap: 4px; padding: 8px 12px; background: var(--bg2); font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; }
+  .list-row { display: grid; grid-template-columns: 64px 1fr 84px 64px; gap: 4px; padding: 9px 12px; border-top: 0.5px solid var(--border); font-size: 12px; align-items: center; }
+  .empty-msg { padding: 2rem; text-align: center; font-size: 13px; color: var(--text3); }
+
+  /* UPLOAD CAPA */
+  .upload-area { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 1.25rem; text-align: center; cursor: pointer; margin-bottom: 10px; color: var(--text2); font-size: 13px; }
+  .upload-area:hover { border-color: var(--blue); }
+  .upload-preview { width: 100%; height: 110px; object-fit: cover; border-radius: var(--radius); margin-bottom: 10px; display: none; }
+  .upload-remove { font-size: 12px; color: var(--danger); background: none; border: none; cursor: pointer; font-family: var(--font); padding: 0; margin-bottom: 10px; display: none; }
+
+  /* CAMPO SENHA FORÇA */
+  .pass-req { font-size: 12px; margin-top: -6px; margin-bottom: 10px; color: var(--text3); }
+  .pass-req.ok { color: var(--success); }
+  .pass-req.bad { color: var(--danger); }
+
+  /* TELA LOGIN */
+  .login-wrap { max-width: 360px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .login-logo { text-align: center; margin-bottom: 2rem; }
+  .login-logo .ico { font-size: 40px; color: var(--blue); }
+  .login-logo h2 { font-size: 20px; font-weight: 700; margin-top: 8px; }
+  .login-logo p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  @media (max-width: 480px) {
+    .ev-cover { height: 200px; }
+    .detail-cover { height: 220px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══════════════ HOME CORRETOR ═══════════════ -->
+<div id="scr-home" class="screen show">
+  <div class="home-header">
+    <div>
+      <div class="home-brand">Irmãs à Obra</div>
+      <div class="home-sub">Imóveis disponíveis para visita</div>
+    </div>
+    <button class="adm-btn" onclick="abrirLogin()" aria-label="Área administrativa" title="Área administrativa">
+      <i class="ti ti-shield-lock" style="font-size:17px" aria-hidden="true"></i>
+    </button>
+  </div>
+  <div class="home-body" id="home-lista"></div>
+</div>
+
+<!-- ═══════════════ DETALHE / AGENDAMENTO ═══════════════ -->
+<div id="scr-detail" class="screen">
+  <div class="detail-back">
+    <button onclick="voltarHome()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Voltar</button>
+    <span id="dt-titulo" style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"></span>
+  </div>
+  <div id="dt-main">
+    <div class="detail-cover" id="dt-cover">
+      <div class="detail-cover-ph"><i class="ti ti-home" aria-hidden="true"></i></div>
+    </div>
+    <div class="detail-info">
+      <div class="detail-title" id="dt-local">—</div>
+      <div class="detail-unidade" id="dt-unidade">—</div>
+      <div class="detail-meta">
+        <div class="detail-meta-row"><i class="ti ti-map-pin" aria-hidden="true"></i><span id="dt-end">—</span></div>
+        <div class="detail-meta-row"><i class="ti ti-calendar" aria-hidden="true"></i><span id="dt-data">—</span></div>
+        <div class="detail-meta-row"><i class="ti ti-clock" aria-hidden="true"></i><span id="dt-horario">—</span></div>
+      </div>
+    </div>
+    <div class="slots-section">
+      <p style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Escolha seu horário</p>
+      <div id="dt-slots"></div>
+    </div>
+  </div>
+  <div class="success-box" id="dt-success" style="display:none">
+    <div class="success-ico"><i class="ti ti-circle-check" aria-hidden="true"></i></div>
+    <h2 id="suc-title">Vaga confirmada!</h2>
+    <p id="suc-body"></p>
+    <div style="margin-top:14px"><span class="badge badge-success">Leve seu RG no dia</span></div>
+    <button class="whatsapp-btn" id="suc-whatsapp" onclick="compartilharWhatsApp()">
+      <i class="ti ti-brand-whatsapp" aria-hidden="true" style="font-size:20px"></i> Salvar no WhatsApp
+    </button>
+    <button class="btn" style="width:100%;justify-content:center;margin-top:10px" onclick="voltarSlots()">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> Ver outros horários
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL LOGIN ═══════════════ -->
+<div class="overlay" id="ov-login">
+  <div class="modal" style="max-width:340px">
+    <div style="text-align:center;margin-bottom:1rem">
+      <i class="ti ti-shield-lock" style="font-size:32px;color:var(--blue)" aria-hidden="true"></i>
+      <h3 style="margin-top:8px">Área administrativa</h3>
+    </div>
+    <input type="text" id="l-user" placeholder="Usuário" autocomplete="username">
+    <input type="password" id="l-pass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')tentarLogin()">
+    <div class="err" id="l-err"></div>
+    <div class="modal-actions" style="margin-top:10px">
+      <button onclick="fecharOverlay('ov-login')">Cancelar</button>
+      <button class="cbtn" onclick="tentarLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL AGENDAMENTO ═══════════════ -->
+<div class="overlay" id="ov-ag">
+  <div class="modal" style="max-width:360px">
+    <h3>Confirmar agendamento</h3>
+    <div class="msub" id="ag-label">—</div>
+    <input type="text" id="ag-nome" placeholder="Nome completo" autocomplete="name">
+    <div class="err" id="ag-nome-err"></div>
+    <input type="text" id="ag-creci" placeholder="CRECI (somente números)" inputmode="numeric">
+    <div class="err" id="ag-creci-err"></div>
+    <input type="text" id="ag-rg" placeholder="RG (ex: 12345678-9)" inputmode="numeric">
+    <div class="err" id="ag-rg-err"></div>
+    <div class="modal-actions">
+      <button onclick="fecharOverlay('ov-ag')">Cancelar</button>
+      <button class="cbtn" id="ag-btn" onclick="confirmarVaga()">Confirmar vaga</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL EVENTO (criar/editar) ═══════════════ -->
+<div class="overlay" id="ov-evento">
+  <div class="modal">
+    <h3 id="ev-modal-titulo">Novo evento</h3>
+    <div style="height:10px"></div>
+
+    <p class="slabel" style="margin-top:0">Imagem de capa</p>
+    <div class="upload-area" onclick="document.getElementById('ev-foto-input').click()">
+      <img id="ev-foto-prev" class="upload-preview">
+      <div id="ev-foto-ph"><i class="ti ti-photo" style="font-size:24px;display:block;margin-bottom:6px" aria-hidden="true"></i>Toque para adicionar foto</div>
+    </div>
+    <button class="upload-remove" id="ev-foto-rem" onclick="removerFoto()"><i class="ti ti-x" aria-hidden="true"></i> Remover foto</button>
+    <input type="file" id="ev-foto-input" accept="image/*" style="display:none" onchange="handleFoto(event)">
+
+    <p class="slabel">Dados do imóvel</p>
+    <input type="text" id="ev-local" placeholder="Nome do local (ex: Condomínio Evidências)">
+    <input type="text" id="ev-end" placeholder="Endereço completo">
+    <input type="text" id="ev-unidade" placeholder="Apto / Casa (ex: Apto 301)">
+    <input type="date" id="ev-data">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <input type="time" id="ev-inicio" style="margin:0" title="Início">
+      <input type="time" id="ev-fim" style="margin:0" title="Fim">
+    </div>
+    <input type="number" id="ev-vagas" placeholder="Vagas padrão por horário" min="1" max="500">
+    <div class="err" id="ev-err"></div>
+    <div class="modal-actions">
+      <button onclick="fecharOverlay('ov-evento')">Cancelar</button>
+      <button class="cbtn" onclick="salvarEvento()">Salvar evento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL REMOVER EVENTO ═══════════════ -->
+<div class="overlay" id="ov-remover">
+  <div class="modal" style="max-width:340px">
+    <h3>Remover evento</h3>
+    <p style="font-size:14px;color:var(--text2);margin:10px 0 6px">Você está prestes a remover:</p>
+    <p style="font-weight:600" id="rem-nome">—</p>
+    <p style="font-size:13px;color:var(--danger);margin-top:8px" id="rem-aviso">Esta ação não pode ser desfeita.</p>
+    <div class="modal-actions" style="margin-top:14px">
+      <button onclick="fecharOverlay('ov-remover')">Cancelar</button>
+      <button class="cbtn" style="background:var(--danger-bg);color:var(--danger)" onclick="confirmarRemover()">Remover</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PAINEL ADMIN ═══════════════ -->
+<div id="scr-admin" class="screen">
+  <div class="topbar">
+    <div class="topbar-title"><i class="ti ti-shield-check" style="font-size:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"></i>Painel admin</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:var(--text2)" id="adm-user-lbl">—</span>
+      <button class="btn" style="font-size:12px;padding:6px 11px" onclick="logout()"><i class="ti ti-logout" aria-hidden="true"></i> Sair</button>
+    </div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="goTab('eventos')"><i class="ti ti-home" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Eventos</div>
+    <div class="tab" onclick="goTab('lista')"><i class="ti ti-list" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Lista</div>
+    <div class="tab" onclick="goTab('acesso')"><i class="ti ti-lock" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Acesso</div>
+  </div>
+
+  <!-- ABA EVENTOS -->
+  <div id="page-eventos" class="page active">
+    <div class="btn-row" style="margin-top:0;margin-bottom:1rem">
+      <button class="btn btn-primary" onclick="novoEvento()"><i class="ti ti-plus" aria-hidden="true"></i> Novo evento</button>
+    </div>
+    <div id="adm-lista"></div>
+  </div>
+
+  <!-- ABA LISTA -->
+  <div id="page-lista" class="page">
+    <p class="slabel" style="margin-top:0">Evento</p>
+    <div class="field-group" style="margin-bottom:1rem">
+      <div class="field-row">
+        <label style="min-width:60px">Evento</label>
+        <select id="lista-sel" onchange="renderLista()" style="flex:1;border:none;background:transparent;font-size:14px;color:var(--text);outline:none;font-family:var(--font)"></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+      <button class="btn btn-danger" id="btn-travar" onclick="travarEvento()"><i class="ti ti-lock" aria-hidden="true"></i> Travar link</button>
+      <button class="btn btn-success" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> Exportar CSV</button>
+    </div>
+    <div id="lista-banner"></div>
+    <div id="lista-resumo" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:1rem"></div>
+    <div id="lista-corpo"></div>
+  </div>
+
+  <!-- ABA ACESSO -->
+  <div id="page-acesso" class="page">
+    <p class="slabel" style="margin-top:0">Alterar credenciais</p>
+    <div class="banner banner-warn"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Altere as credenciais padrão antes de usar.</div>
+    <div class="field-group">
+      <div class="field-row"><label>Novo usuário</label><input id="ac-user" type="text" placeholder="Novo usuário"></div>
+      <div class="field-row"><label>Senha atual</label><input id="ac-atual" type="password" placeholder="Senha atual"></div>
+      <div class="field-row"><label>Nova senha</label><input id="ac-nova" type="password" placeholder="Mín. 6 caracteres" oninput="checkPassReq()"></div>
+      <div class="field-row"><label>Confirmar</label><input id="ac-conf" type="password" placeholder="Repita a senha"></div>
+    </div>
+    <p class="pass-req" id="pass-req-msg">Mínimo 6 caracteres</p>
+    <div class="err" id="ac-err"></div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="alterarCreds()"><i class="ti ti-check" aria-hidden="true"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+// ── CREDENCIAIS (hash simples) ─────────────────────────────
+let ADMIN = { user: 'admin', passHash: btoa('irmas2026') };
+let logado = false;
+let eventos = [];
+let eventoAtivo = null;
+let selectedSlot = null;
+let evEditId = null;
+let fotoTemp = null;
+let remEvId = null;
+let sucInfo = null;
+
+// ── UTILIDADES ─────────────────────────────────────────────
+const pad = n => String(n).padStart(2,'0');
+const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fromMin = m => pad(Math.floor(m/60))+':'+pad(m%60);
+const fmtData = d => {
+  if (!d) return '—';
+  const [y,mo,dy] = d.split('-');
+  const ms = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  return dy+' de '+ms[parseInt(mo)-1]+' de '+y;
+};
+const fmtH = t => t ? t.replace(':','h') : '—';
+const uid = () => Math.random().toString(36).slice(2,9);
+
+function gerarSlots(ini, fim, v) {
+  const s = []; let c = toMin(ini); const e = toMin(fim);
+  while (c < e) { s.push({ hora: fromMin(c), vagas: parseInt(v), inscritos: [] }); c += 30; }
+  return s;
+}
+
+// ── PERSISTÊNCIA localStorage ──────────────────────────────
+function salvarEstado() {
+  try {
+    localStorage.setItem('iob_eventos', JSON.stringify(eventos));
+    localStorage.setItem('iob_admin', JSON.stringify(ADMIN));
+  } catch(e) {}
+}
+function carregarEstado() {
+  try {
+    const ev = localStorage.getItem('iob_eventos');
+    const ad = localStorage.getItem('iob_admin');
+    if (ev) eventos = JSON.parse(ev);
+    if (ad) ADMIN = JSON.parse(ad);
+  } catch(e) { eventos = []; }
+}
+
+// ── NAVEGAÇÃO ──────────────────────────────────────────────
+function mostrar(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  window.scrollTo(0,0);
+}
+function showOverlay(id) { document.getElementById(id).classList.add('show'); }
+function fecharOverlay(id) { document.getElementById(id).classList.remove('show'); }
+
+// ── HOME CORRETOR ──────────────────────────────────────────
+function renderHome() {
+  const el = document.getElementById('home-lista');
+  const ativos = eventos.filter(e => !e.removido);
+  if (!ativos.length) {
+    el.innerHTML = `<div class="empty-msg" style="padding:3rem 1rem">
+      <i class="ti ti-calendar-off" style="font-size:36px;display:block;margin-bottom:10px;color:var(--text3)" aria-hidden="true"></i>
+      Nenhum evento disponível no momento.</div>`;
+    return;
+  }
+  el.innerHTML = ativos.map(ev => {
+    const disp = ev.slots.reduce((a,s) => a + Math.max(0, s.vagas - s.inscritos.length), 0);
+    const cover = ev.foto
+      ? `<img src="${ev.foto}" alt="Foto do imóvel ${ev.local}">`
+      : `<div class="ev-cover-ph"><i class="ti ti-home" aria-hidden="true"></i><span>Sem foto</span></div>`;
+    const badge = ev.travado
+      ? `<span class="badge" style="background:rgba(0,0,0,.55);color:#fff">Encerrado</span>`
+      : disp > 0
+        ? `<span class="badge" style="background:rgba(0,0,0,.50);color:#fff"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i> Vagas disponíveis</span>`
+        : `<span class="badge" style="background:rgba(0,0,0,.50);color:#fff">Esgotado</span>`;
+    const cta = ev.travado
+      ? `<div style="padding:11px;background:var(--bg2);border-radius:var(--radius);text-align:center;font-size:13px;color:var(--text3)">Agendamentos encerrados</div>`
+      : `<button class="ev-cta" onclick="abrirEvento('${ev.id}')"><i class="ti ti-calendar-check" aria-hidden="true"></i> Agendar minha visita</button>`;
+    return `<div class="ev-card${ev.travado?' closed':''}">
+      <div class="ev-cover">${cover}<div class="ev-cover-badge">${badge}</div></div>
+      <div class="ev-body">
+        <div class="ev-title">${ev.local}</div>
+        <div class="ev-unidade">${ev.unidade}</div>
+        <div class="ev-meta">
+          <div class="ev-meta-row"><i class="ti ti-map-pin" aria-hidden="true"></i><span>${ev.endereco||'—'}</span></div>
+          <div class="ev-meta-row"><i class="ti ti-calendar" aria-hidden="true"></i><span>${fmtData(ev.data)}</span></div>
+          <div class="ev-meta-row"><i class="ti ti-clock" aria-hidden="true"></i><span>${fmtH(ev.inicio)} às ${fmtH(ev.fim)}</span></div>
+        </div>
+        ${cta}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirEvento(id) {
+  const ev = eventos.find(e => e.id === id);
+  if (!ev || ev.travado) return;
+  eventoAtivo = ev;
+  document.getElementById('dt-titulo').textContent = ev.local;
+  document.getElementById('dt-local').textContent = ev.local;
+  document.getElementById('dt-unidade').textContent = ev.unidade;
+  document.getElementById('dt-end').textContent = ev.endereco || '—';
+  document.getElementById('dt-data').textContent = fmtData(ev.data);
+  document.getElementById('dt-horario').textContent = fmtH(ev.inicio)+' às '+fmtH(ev.fim)+' (horário de Brasília)';
+  const cover = document.getElementById('dt-cover');
+  cover.innerHTML = ev.foto
+    ? `<img src="${ev.foto}" alt="Foto do imóvel">`
+    : `<div class="detail-cover-ph"><i class="ti ti-home" aria-hidden="true"></i></div>`;
+  document.getElementById('dt-main').style.display = 'block';
+  document.getElementById('dt-success').style.display = 'none';
+  renderSlots();
+  mostrar('scr-detail');
+}
+
+function renderSlots() {
+  const el = document.getElementById('dt-slots');
+  if (!eventoAtivo || !eventoAtivo.slots.length) {
+    el.innerHTML = '<div class="empty-msg">Nenhum horário disponível.</div>';
+    return;
+  }
+  el.innerHTML = eventoAtivo.slots.map((s, i) => {
+    const disp = s.vagas - s.inscritos.length;
+    const full = disp <= 0;
+    return `<div class="slot-card${full?' full':''}">
+      <div>
+        <div class="slot-time">${fmtH(s.hora)}</div>
+        <div class="slot-status">${full ? 'Esgotado' : 'Vagas disponíveis'}</div>
+      </div>
+      <button class="slot-btn ${full?'lotado':'avail'}" ${full?'disabled':''} onclick="abrirModal(${i})">
+        ${full ? 'Lotado' : 'Agendar'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function abrirModal(i) {
+  // Verificação dupla de vagas antes de abrir
+  const s = eventoAtivo.slots[i];
+  if (s.inscritos.length >= s.vagas) { alert('Este horário acabou de ser preenchido. Escolha outro.'); renderSlots(); return; }
+  selectedSlot = i;
+  document.getElementById('ag-label').textContent = fmtH(s.hora)+' · '+eventoAtivo.unidade+' · '+fmtData(eventoAtivo.data);
+  ['ag-nome','ag-creci','ag-rg'].forEach(id => { document.getElementById(id).value=''; document.getElementById(id).classList.remove('invalid'); });
+  ['ag-nome-err','ag-creci-err','ag-rg-err'].forEach(id => document.getElementById(id).textContent='');
+  document.getElementById('ag-btn').disabled = false;
+  document.getElementById('ag-btn').textContent = 'Confirmar vaga';
+  showOverlay('ov-ag');
+}
+
+function validarCampos() {
+  let ok = true;
+  const nome = document.getElementById('ag-nome').value.trim();
+  const creci = document.getElementById('ag-creci').value.trim();
+  const rg = document.getElementById('ag-rg').value.trim();
+
+  // Nome: mínimo 2 palavras
+  if (nome.split(/\s+/).filter(Boolean).length < 2) {
+    document.getElementById('ag-nome-err').textContent = 'Digite nome e sobrenome.';
+    document.getElementById('ag-nome').classList.add('invalid');
+    ok = false;
+  } else {
+    document.getElementById('ag-nome-err').textContent = '';
+    document.getElementById('ag-nome').classList.remove('invalid');
+  }
+
+  // CRECI: somente números, 4–7 dígitos
+  if (!/^\d{4,7}$/.test(creci.replace(/\D/g,''))) {
+    document.getElementById('ag-creci-err').textContent = 'CRECI inválido (somente números, 4–7 dígitos).';
+    document.getElementById('ag-creci').classList.add('invalid');
+    ok = false;
+  } else {
+    document.getElementById('ag-creci-err').textContent = '';
+    document.getElementById('ag-creci').classList.remove('invalid');
+  }
+
+  // RG: 7–12 dígitos/letras
+  if (rg.replace(/[\s.\-]/g,'').length < 7) {
+    document.getElementById('ag-rg-err').textContent = 'RG inválido (mínimo 7 dígitos).';
+    document.getElementById('ag-rg').classList.add('invalid');
+    ok = false;
+  } else {
+    document.getElementById('ag-rg-err').textContent = '';
+    document.getElementById('ag-rg').classList.remove('invalid');
+  }
+
+  return ok;
+}
+
+function confirmarVaga() {
+  if (!validarCampos()) return;
+  const nome = document.getElementById('ag-nome').value.trim();
+  const creci = document.getElementById('ag-creci').value.trim();
+  const rg = document.getElementById('ag-rg').value.trim();
+
+  // Verificar CRECI duplicado no evento
+  const jaInscrito = eventoAtivo.slots.some(s => s.inscritos.some(p => p.creci.replace(/\D/g,'') === creci.replace(/\D/g,'')));
+  if (jaInscrito) {
+    document.getElementById('ag-creci-err').textContent = 'Este CRECI já está inscrito neste evento.';
+    document.getElementById('ag-creci').classList.add('invalid');
+    return;
+  }
+
+  // Verificar vaga ainda disponível (proteção contra duplo clique)
+  const s = eventoAtivo.slots[selectedSlot];
+  if (s.inscritos.length >= s.vagas) {
+    fecharOverlay('ov-ag');
+    alert('Este horário acabou de ser preenchido. Escolha outro.');
+    renderSlots();
+    return;
+  }
+
+  const btn = document.getElementById('ag-btn');
+  btn.disabled = true;
+  btn.textContent = 'Confirmando...';
+
+  const ts = new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
+  s.inscritos.push({ nome, creci, rg, ts });
+  salvarEstado();
+
+  sucInfo = { nome, hora: s.hora, local: eventoAtivo.local, unidade: eventoAtivo.unidade, data: eventoAtivo.data };
+  fecharOverlay('ov-ag');
+
+  document.getElementById('suc-title').textContent = 'Confirmado, '+nome.split(' ')[0]+'!';
+  document.getElementById('suc-body').textContent = 'Agendado para '+fmtH(s.hora)+' em '+eventoAtivo.unidade+', '+eventoAtivo.local+'. '+fmtData(eventoAtivo.data)+'.';
+  document.getElementById('dt-main').style.display = 'none';
+  document.getElementById('dt-success').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function compartilharWhatsApp() {
+  if (!sucInfo) return;
+  const txt = encodeURIComponent(
+    '✅ *Visita agendada – Irmãs à Obra*\n\n'+
+    '📍 '+sucInfo.local+' – '+sucInfo.unidade+'\n'+
+    '📅 '+fmtData(sucInfo.data)+'\n'+
+    '⏰ '+fmtH(sucInfo.hora)+' (horário de Brasília)\n\n'+
+    'Lembre-se de levar seu RG no dia!'
+  );
+  window.open('https://wa.me/?text='+txt, '_blank');
+}
+
+function voltarSlots() {
+  document.getElementById('dt-main').style.display = 'block';
+  document.getElementById('dt-success').style.display = 'none';
+  renderSlots();
+  window.scrollTo(0,0);
+}
+function voltarHome() { renderHome(); mostrar('scr-home'); }
+
+// ── LOGIN ADMIN ────────────────────────────────────────────
+function abrirLogin() {
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('l-err').textContent = '';
+  showOverlay('ov-login');
+}
+function tentarLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  if (u === ADMIN.user && btoa(p) === ADMIN.passHash) {
+    logado = true;
+    fecharOverlay('ov-login');
+    document.getElementById('adm-user-lbl').textContent = u;
+    mostrar('scr-admin');
+    goTab('eventos');
+    renderAdm();
+  } else {
+    document.getElementById('l-err').textContent = 'Usuário ou senha incorretos.';
+    document.getElementById('l-pass').value = '';
+  }
+}
+function logout() { logado = false; mostrar('scr-home'); renderHome(); }
+
+// ── TABS ADMIN ─────────────────────────────────────────────
+function goTab(t) {
+  document.querySelectorAll('#scr-admin .tab').forEach((el,i) => {
+    el.classList.toggle('active', ['eventos','lista','acesso'][i] === t);
+  });
+  document.querySelectorAll('#scr-admin .page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+t).classList.add('active');
+  if (t === 'lista') { populaSelect(); renderLista(); }
+  if (t === 'eventos') renderAdm();
+}
+
+// ── FOTO UPLOAD (comprime para max 800x600, ~200KB) ────────
+function handleFoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const MAX = 800;
+      if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h*MAX/w); w = MAX; } else { w = Math.round(w*MAX/h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      fotoTemp = canvas.toDataURL('image/jpeg', 0.75);
+      const prev = document.getElementById('ev-foto-prev');
+      prev.src = fotoTemp; prev.style.display = 'block';
+      document.getElementById('ev-foto-ph').style.display = 'none';
+      document.getElementById('ev-foto-rem').style.display = 'block';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removerFoto() {
+  fotoTemp = null;
+  document.getElementById('ev-foto-prev').style.display = 'none';
+  document.getElementById('ev-foto-ph').style.display = 'block';
+  document.getElementById('ev-foto-rem').style.display = 'none';
+  document.getElementById('ev-foto-input').value = '';
+}
+
+// ── CRUD EVENTOS ───────────────────────────────────────────
+function novoEvento() {
+  evEditId = null; fotoTemp = null;
+  document.getElementById('ev-modal-titulo').textContent = 'Novo evento';
+  ['ev-local','ev-end','ev-unidade'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ev-data').value = '';
+  document.getElementById('ev-inicio').value = '10:00';
+  document.getElementById('ev-fim').value = '18:00';
+  document.getElementById('ev-vagas').value = '10';
+  document.getElementById('ev-err').textContent = '';
+  document.getElementById('ev-foto-prev').style.display = 'none';
+  document.getElementById('ev-foto-prev').src = '';
+  document.getElementById('ev-foto-ph').style.display = 'block';
+  document.getElementById('ev-foto-rem').style.display = 'none';
+  document.getElementById('ev-foto-input').value = '';
+  showOverlay('ov-evento');
+}
+
+function editarEvento(id) {
+  const ev = eventos.find(e => e.id === id); if (!ev) return;
+  evEditId = id; fotoTemp = ev.foto || null;
+  document.getElementById('ev-modal-titulo').textContent = 'Editar evento';
+  document.getElementById('ev-local').value = ev.local;
+  document.getElementById('ev-end').value = ev.endereco;
+  document.getElementById('ev-unidade').value = ev.unidade;
+  document.getElementById('ev-data').value = ev.data;
+  document.getElementById('ev-inicio').value = ev.inicio;
+  document.getElementById('ev-fim').value = ev.fim;
+  document.getElementById('ev-vagas').value = ev.vagasPadrao;
+  document.getElementById('ev-err').textContent = '';
+  const prev = document.getElementById('ev-foto-prev');
+  if (ev.foto) { prev.src = ev.foto; prev.style.display = 'block'; document.getElementById('ev-foto-ph').style.display = 'none'; document.getElementById('ev-foto-rem').style.display = 'block'; }
+  else { prev.style.display = 'none'; document.getElementById('ev-foto-ph').style.display = 'block'; document.getElementById('ev-foto-rem').style.display = 'none'; }
+  showOverlay('ov-evento');
+}
+
+function salvarEvento() {
+  const local = document.getElementById('ev-local').value.trim();
+  const end = document.getElementById('ev-end').value.trim();
+  const unidade = document.getElementById('ev-unidade').value.trim();
+  const data = document.getElementById('ev-data').value;
+  const ini = document.getElementById('ev-inicio').value;
+  const fim = document.getElementById('ev-fim').value;
+  const vagas = parseInt(document.getElementById('ev-vagas').value) || 10;
+  const err = document.getElementById('ev-err');
+  if (!local) { err.textContent = 'Preencha o nome do local.'; return; }
+  if (!data) { err.textContent = 'Selecione a data.'; return; }
+  if (!ini || !fim) { err.textContent = 'Informe início e fim.'; return; }
+  if (toMin(ini) >= toMin(fim)) { err.textContent = 'Início deve ser antes do fim.'; return; }
+  err.textContent = '';
+
+  if (evEditId) {
+    const ev = eventos.find(e => e.id === evEditId);
+    const horariomudou = ev.inicio !== ini || ev.fim !== fim;
+    ev.local = local; ev.endereco = end; ev.unidade = unidade;
+    ev.data = data; ev.inicio = ini; ev.fim = fim; ev.vagasPadrao = vagas; ev.foto = fotoTemp;
+    // Só regenera slots se horário mudou
+    if (horariomudou) {
+      if (ev.slots.some(s => s.inscritos.length > 0)) {
+        if (!confirm('Alterar os horários vai apagar os agendamentos existentes. Continuar?')) return;
+      }
+      ev.slots = gerarSlots(ini, fim, vagas);
+    }
+  } else {
+    eventos.push({ id: uid(), local, endereco: end, unidade, data, inicio: ini, fim, vagasPadrao: vagas, slots: gerarSlots(ini, fim, vagas), travado: false, foto: fotoTemp });
+  }
+  salvarEstado();
+  fecharOverlay('ov-evento');
+  renderAdm(); renderHome();
+}
+
+function pedirRemover(id) {
+  const ev = eventos.find(e => e.id === id); if (!ev) return;
+  remEvId = id;
+  const total = ev.slots.reduce((a,s) => a + s.inscritos.length, 0);
+  document.getElementById('rem-nome').textContent = ev.local + (ev.unidade ? ' – '+ev.unidade : '');
+  document.getElementById('rem-aviso').textContent = total > 0
+    ? `⚠️ Este evento tem ${total} corretor${total>1?'es':''} inscrito${total>1?'s':''}. Esta ação não pode ser desfeita.`
+    : 'Esta ação não pode ser desfeita.';
+  showOverlay('ov-remover');
+}
+function confirmarRemover() {
+  eventos = eventos.filter(e => e.id !== remEvId);
+  salvarEstado(); fecharOverlay('ov-remover'); renderAdm(); renderHome();
+}
+
+function toggleTravar(id) {
+  const ev = eventos.find(e => e.id === id); if (!ev) return;
+  if (!ev.travado && !confirm('Travar agendamentos de "'+ev.local+'"?')) return;
+  ev.travado = !ev.travado;
+  salvarEstado(); renderAdm(); renderHome(); renderLista();
+}
+
+function changeVagas(evId, si, v) {
+  const ev = eventos.find(e => e.id === evId); if (!ev) return;
+  ev.slots[si].vagas = Math.max(parseInt(v)||1, ev.slots[si].inscritos.length);
+  salvarEstado(); renderAdm();
+}
+
+// ── RENDER ADMIN ───────────────────────────────────────────
+function renderAdm() {
+  const el = document.getElementById('adm-lista');
+  if (!eventos.length) { el.innerHTML = '<div class="empty-msg">Nenhum evento criado ainda.</div>'; return; }
+  el.innerHTML = eventos.map(ev => {
+    const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
+    const totalV = ev.slots.reduce((a,s) => a+s.vagas, 0);
+    return `<div class="adm-ev-card">
+      <div class="adm-ev-head">
+        <div class="adm-thumb">${ev.foto ? `<img src="${ev.foto}" alt="">` : `<i class="ti ti-home" style="font-size:22px" aria-hidden="true"></i>`}</div>
+        <div class="adm-ev-info">
+          <div class="adm-ev-name">${ev.local}</div>
+          <div class="adm-ev-sub">${ev.unidade} · ${fmtData(ev.data)}</div>
+          <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-info">${total}/${totalV} inscritos</span>
+            ${ev.travado ? '<span class="badge badge-danger">Travado</span>' : '<span class="badge badge-success">Aberto</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="adm-ev-actions">
+        <button class="btn" style="font-size:12px;padding:6px 11px" onclick="editarEvento('${ev.id}')"><i class="ti ti-edit" aria-hidden="true"></i> Editar</button>
+        <button class="btn ${ev.travado?'btn-success':'btn-warning'}" style="font-size:12px;padding:6px 11px" onclick="toggleTravar('${ev.id}')">
+          ${ev.travado ? '<i class="ti ti-lock-open" aria-hidden="true"></i> Reabrir' : '<i class="ti ti-lock" aria-hidden="true"></i> Travar'}
+        </button>
+        <button class="btn btn-danger" style="font-size:12px;padding:6px 11px" onclick="pedirRemover('${ev.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Remover</button>
+      </div>
+      <div>
+        ${ev.slots.map((s,i) => `
+          <div class="adm-slot-row">
+            <div class="adm-slot-info">${fmtH(s.hora)}<span>${s.inscritos.length}/${s.vagas} inscritos</span></div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input class="adm-vagas-input" type="number" min="1" max="500" value="${s.vagas}" onchange="changeVagas('${ev.id}',${i},this.value)">
+              <span style="font-size:11px;color:var(--text2)">vagas</span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LISTA ──────────────────────────────────────────────────
+function populaSelect() {
+  const sel = document.getElementById('lista-sel');
+  sel.innerHTML = eventos.length
+    ? eventos.map(ev => `<option value="${ev.id}">${ev.local} – ${ev.unidade} (${fmtData(ev.data)})</option>`).join('')
+    : '<option value="">Nenhum evento</option>';
+}
+function getEvSel() { return eventos.find(e => e.id === document.getElementById('lista-sel').value); }
+
+function renderLista() {
+  const ev = getEvSel();
+  const banner = document.getElementById('lista-banner');
+  const btn = document.getElementById('btn-travar');
+  if (!ev) {
+    document.getElementById('lista-resumo').innerHTML = '';
+    document.getElementById('lista-corpo').innerHTML = '<div class="empty-msg">Nenhum evento disponível.</div>';
+    banner.innerHTML = ''; return;
+  }
+  btn.innerHTML = ev.travado ? '<i class="ti ti-lock-open" aria-hidden="true"></i> Reabrir link' : '<i class="ti ti-lock" aria-hidden="true"></i> Travar link';
+  btn.className = 'btn ' + (ev.travado ? 'btn-success' : 'btn-danger');
+  banner.innerHTML = ev.travado ? '<div class="banner banner-warn"><i class="ti ti-lock" aria-hidden="true"></i> Agendamentos travados para este evento.</div>' : '';
+  const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
+  const totalV = ev.slots.reduce((a,s) => a+s.vagas, 0);
+  document.getElementById('lista-resumo').innerHTML = `
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Inscritos</div><div style="font-size:22px;font-weight:700">${total}</div></div>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Vagas totais</div><div style="font-size:22px;font-weight:700">${totalV}</div></div>`;
+  const corpo = document.getElementById('lista-corpo');
+  const temDados = ev.slots.some(s => s.inscritos.length > 0);
+  if (!temDados) { corpo.innerHTML = '<div class="empty-msg">Nenhum agendamento ainda.</div>'; return; }
+  corpo.innerHTML = ev.slots.filter(s => s.inscritos.length > 0).map(s => `
+    <div style="margin-bottom:1rem">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:7px">
+        <i class="ti ti-clock" style="font-size:13px" aria-hidden="true"></i>${fmtH(s.hora)}
+        <span class="badge badge-info">${s.inscritos.length}/${s.vagas}</span>
+      </div>
+      <div class="card">
+        <div class="list-header"><span>Horário</span><span>Nome</span><span>CRECI</span><span>RG</span></div>
+        ${s.inscritos.map(p => `<div class="list-row">
+          <span>${fmtH(s.hora)}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.nome}">${p.nome}</span>
+          <span>${p.creci}</span>
+          <span>${p.rg}</span>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function travarEvento() {
+  const ev = getEvSel(); if (!ev) return;
+  if (!ev.travado && !confirm('Travar agendamentos deste evento?')) return;
+  ev.travado = !ev.travado;
+  salvarEstado(); renderAdm(); renderHome(); renderLista();
+}
+
+function exportarCSV() {
+  const ev = getEvSel();
+  if (!ev) { alert('Selecione um evento.'); return; }
+  const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
+  if (!total) { alert('Nenhum inscrito para exportar.'); return; }
+  // BOM UTF-8 para Excel
+  let csv = '\uFEFF' + 'Horário,Nome,CRECI,RG,Data/hora do cadastro\n';
+  ev.slots.forEach(s => s.inscritos.forEach(p => {
+    csv += `"${fmtH(s.hora)}","${p.nome}","${p.creci}","${p.rg}","${p.ts||'—'}"\n`;
+  }));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = 'lista_portaria_'+ev.data+'_'+ev.local.replace(/\s/g,'_')+'.csv';
+  a.click();
+}
+
+// ── ACESSO ─────────────────────────────────────────────────
+function checkPassReq() {
+  const v = document.getElementById('ac-nova').value;
+  const el = document.getElementById('pass-req-msg');
+  el.className = 'pass-req ' + (v.length >= 6 ? 'ok' : 'bad');
+  el.textContent = v.length >= 6 ? '✓ Senha com comprimento válido' : 'Mínimo 6 caracteres';
+}
+
+function alterarCreds() {
+  const novoU = document.getElementById('ac-user').value.trim();
+  const atual = document.getElementById('ac-atual').value;
+  const nova = document.getElementById('ac-nova').value;
+  const conf = document.getElementById('ac-conf').value;
+  const err = document.getElementById('ac-err');
+  if (btoa(atual) !== ADMIN.passHash) { err.className='err'; err.textContent = 'Senha atual incorreta.'; return; }
+  if (!novoU) { err.className='err'; err.textContent = 'Usuário não pode ser vazio.'; return; }
+  if (nova.length < 6) { err.className='err'; err.textContent = 'Nova senha deve ter ao menos 6 caracteres.'; return; }
+  if (nova !== conf) { err.className='err'; err.textContent = 'As senhas não coincidem.'; return; }
+  ADMIN = { user: novoU, passHash: btoa(nova) };
+  document.getElementById('adm-user-lbl').textContent = novoU;
+  salvarEstado();
+  err.className='ok'; err.textContent = '✓ Credenciais atualizadas!';
+  ['ac-user','ac-atual','ac-nova','ac-conf'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pass-req-msg').className = 'pass-req';
+  document.getElementById('pass-req-msg').textContent = 'Mínimo 6 caracteres';
+  setTimeout(() => { err.textContent = ''; }, 3000);
+}
+
+// ── INIT ───────────────────────────────────────────────────
+carregarEstado();
+renderHome();
+</script>
+</div>
+</body>
+</html>
