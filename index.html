@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Irmãs à Obra — Agendamento de Visitas</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<!-- ícones SVG inline — sem dependência de CDN -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeece6;
@@ -31,8 +32,8 @@
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 15px; min-height: 100vh; display: flex; justify-content: center; }
-  #app { width: 100%; max-width: 480px; background: var(--bg3); min-height: 100vh; position: relative; }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 15px; min-height: 100vh; }
+  #app { width: 100%; background: var(--bg3); min-height: 100vh; position: relative; }
   .screen { display: none; }
   .screen.show { display: block; }
   .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: .75rem; }
@@ -86,30 +87,41 @@
   .modal-actions .cbtn:disabled { opacity: .5; cursor: not-allowed; }
 
   /* HOME CORRETOR */
-  .home-header { padding: 1.25rem 1rem 1rem; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .home-brand { font-size: 18px; font-weight: 700; }
-  .home-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-  .adm-btn { background: transparent; border: 0.5px solid var(--border); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); flex-shrink: 0; }
-  .home-body { padding: 1rem; }
+  .home-header { 
+    width: 100%; background: var(--blue); 
+    padding: 3rem 2rem 2.5rem; 
+    text-align: center; position: relative;
+    background-image: linear-gradient(135deg, #1a4a7a 0%, #378ADD 60%, #5ba3e8 100%);
+  }
+  .home-brand { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -.5px; }
+  .home-sub { font-size: 15px; color: rgba(255,255,255,0.78); margin-top: 6px; }
+  .adm-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.15); border: 0.5px solid rgba(255,255,255,0.3); border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; flex-shrink: 0; backdrop-filter: blur(4px); }
+  .adm-btn:hover { background: rgba(255,255,255,0.25); }
+  .home-body { padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+
+  /* GRADE DE EVENTOS */
+  .ev-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  @media (max-width: 700px) { .ev-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; } }
+  @media (max-width: 480px) { .ev-grid { grid-template-columns: 1fr; gap: .75rem; } }
 
   /* CARD EVENTO CORRETOR */
-  .ev-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; cursor: pointer; transition: border-color .15s, transform .1s; }
-  .ev-card:hover { border-color: var(--border2); }
-  .ev-card:active { transform: scale(0.99); }
+  .ev-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s; display: flex; flex-direction: column; }
+  .ev-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.10); }
+  .ev-card:active { transform: scale(0.98); }
   .ev-card.closed { opacity: .55; cursor: default; }
-  .ev-cover { width: 100%; height: 170px; background: var(--bg2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+  .ev-cover { width: 100%; height: 130px; background: var(--bg2); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
   .ev-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ev-cover-ph { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text3); }
-  .ev-cover-ph i { font-size: 36px; }
-  .ev-cover-ph span { font-size: 12px; }
-  .ev-cover-badge { position: absolute; top: 10px; right: 10px; }
-  .ev-body { padding: 1rem 1.25rem; }
-  .ev-title { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
-  .ev-unidade { font-size: 14px; color: var(--text2); margin-bottom: .75rem; }
-  .ev-meta { display: flex; flex-direction: column; gap: 5px; margin-bottom: 1rem; }
-  .ev-meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
-  .ev-meta-row i { font-size: 15px; color: var(--text3); flex-shrink: 0; }
-  .ev-cta { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--blue); color: var(--blue-dark); font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+  .ev-cover-ph { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text3); }
+  .ev-cover-ph i { font-size: 28px; }
+  .ev-cover-ph span { font-size: 11px; }
+  .ev-cover-badge { position: absolute; top: 7px; right: 7px; }
+  .ev-body { padding: .75rem; flex: 1; display: flex; flex-direction: column; }
+  .ev-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; line-height: 1.3; }
+  .ev-unidade { font-size: 12px; color: var(--text2); margin-bottom: .5rem; }
+  .ev-meta { display: flex; flex-direction: column; gap: 3px; margin-bottom: .75rem; flex: 1; }
+  .ev-meta-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .ev-meta-row i { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .ev-cta { width: 100%; padding: 9px; border-radius: var(--radius); border: none; background: var(--blue); color: var(--blue-dark); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 6px; transition: opacity .15s; margin-top: auto; }
   .ev-cta:active { opacity: .85; }
 
   /* TELA DETALHE */
@@ -143,6 +155,9 @@
 
   /* ADMIN CARDS */
   .adm-ev-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: .75rem; }
+  .adm-ev-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1rem; }
+  @media (max-width: 700px) { .adm-ev-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 480px) { .adm-ev-grid { grid-template-columns: 1fr; } }
   .adm-ev-head { display: flex; gap: 12px; padding: 12px 14px; align-items: center; }
   .adm-thumb { width: 54px; height: 54px; border-radius: var(--radius); overflow: hidden; flex-shrink: 0; background: var(--bg2); display: flex; align-items: center; justify-content: center; color: var(--text3); }
   .adm-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -179,9 +194,24 @@
   .login-logo p { font-size: 13px; color: var(--text2); margin-top: 4px; }
 
   @media (max-width: 480px) {
-    .ev-cover { height: 200px; }
     .detail-cover { height: 220px; }
   }
+
+  /* Inputs com ícone */
+  .input-wrap { position: relative; margin-bottom: 10px; }
+  .input-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text3); pointer-events: none; }
+  .input-wrap input { padding-left: 36px; width: 100%; padding-top: 10px; padding-bottom: 10px; padding-right: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); font-family: var(--font); font-size: 15px; outline: none; box-sizing: border-box; }
+  .input-wrap input:focus { border-color: var(--blue); background: var(--bg); }
+  .input-wrap input::placeholder { color: var(--text3); }
+  .input-wrap input.invalid { border-color: var(--danger); }
+  /* Inputs do modal evento com ícone */
+  .ev-input-wrap { position: relative; margin-bottom: 10px; }
+  .ev-input-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 15px; color: var(--text3); pointer-events: none; }
+  .ev-input-wrap input, .ev-input-wrap select { padding-left: 34px !important; width: 100%; padding-top: 10px; padding-bottom: 10px; padding-right: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); font-family: var(--font); font-size: 14px; outline: none; box-sizing: border-box; }
+  .ev-input-wrap input:focus { border-color: var(--blue); background: var(--bg); }
+  .ev-input-wrap input::placeholder { color: var(--text3); }
+
+
 </style>
 </head>
 <body>
@@ -190,34 +220,32 @@
 <!-- ═══════════════ HOME CORRETOR ═══════════════ -->
 <div id="scr-home" class="screen show">
   <div class="home-header">
-    <div>
-      <div class="home-brand">Irmãs à Obra</div>
-      <div class="home-sub">Imóveis disponíveis para visita</div>
-    </div>
+    <div class="home-brand">Irmãs à Obra</div>
+    <div class="home-sub">Imóveis disponíveis para visita</div>
     <button class="adm-btn" onclick="abrirLogin()" aria-label="Área administrativa" title="Área administrativa">
-      <i class="ti ti-shield-lock" style="font-size:17px" aria-hidden="true"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="17.0px" height="17.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3A12 12 0 0 1 12 21A12 12 0 0 1 3.5 6A12 12 0 0 0 12 3"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M12 11V9"/></svg>
     </button>
   </div>
-  <div class="home-body" id="home-lista"></div>
+  <div class="home-body"><div class="ev-grid" id="home-lista"></div></div>
 </div>
 
 <!-- ═══════════════ DETALHE / AGENDAMENTO ═══════════════ -->
 <div id="scr-detail" class="screen">
   <div class="detail-back">
-    <button onclick="voltarHome()"><i class="ti ti-arrow-left" aria-hidden="true"></i> Voltar</button>
+    <button onclick="voltarHome()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg> Voltar</button>
     <span id="dt-titulo" style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"></span>
   </div>
   <div id="dt-main">
     <div class="detail-cover" id="dt-cover">
-      <div class="detail-cover-ph"><i class="ti ti-home" aria-hidden="true"></i></div>
+      <div class="detail-cover-ph"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg></div>
     </div>
     <div class="detail-info">
       <div class="detail-title" id="dt-local">—</div>
       <div class="detail-unidade" id="dt-unidade">—</div>
       <div class="detail-meta">
-        <div class="detail-meta-row"><i class="ti ti-map-pin" aria-hidden="true"></i><span id="dt-end">—</span></div>
-        <div class="detail-meta-row"><i class="ti ti-calendar" aria-hidden="true"></i><span id="dt-data">—</span></div>
-        <div class="detail-meta-row"><i class="ti ti-clock" aria-hidden="true"></i><span id="dt-horario">—</span></div>
+        <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg><span id="dt-end">—</span></div>
+        <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg><span id="dt-data">—</span></div>
+        <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg><span id="dt-horario">—</span></div>
       </div>
     </div>
     <div class="slots-section">
@@ -226,15 +254,15 @@
     </div>
   </div>
   <div class="success-box" id="dt-success" style="display:none">
-    <div class="success-ico"><i class="ti ti-circle-check" aria-hidden="true"></i></div>
+    <div class="success-ico"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M9 12l2 2l4-4"/></svg></div>
     <h2 id="suc-title">Vaga confirmada!</h2>
     <p id="suc-body"></p>
     <div style="margin-top:14px"><span class="badge badge-success">Leve seu RG no dia</span></div>
     <button class="whatsapp-btn" id="suc-whatsapp" onclick="compartilharWhatsApp()">
-      <i class="ti ti-brand-whatsapp" aria-hidden="true" style="font-size:20px"></i> Salvar no WhatsApp
+      <svg xmlns="http://www.w3.org/2000/svg" width="20.0px" height="20.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg> Salvar no WhatsApp
     </button>
     <button class="btn" style="width:100%;justify-content:center;margin-top:10px" onclick="voltarSlots()">
-      <i class="ti ti-arrow-left" aria-hidden="true"></i> Ver outros horários
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M15 6l-6 6l6 6"/></svg> Ver outros horários
     </button>
   </div>
 </div>
@@ -243,11 +271,17 @@
 <div class="overlay" id="ov-login">
   <div class="modal" style="max-width:340px">
     <div style="text-align:center;margin-bottom:1rem">
-      <i class="ti ti-shield-lock" style="font-size:32px;color:var(--blue)" aria-hidden="true"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32.0px" height="32.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;color:var(--blue)" aria-hidden="true"><path d="M12 3a12 12 0 0 0 8.5 3A12 12 0 0 1 12 21A12 12 0 0 1 3.5 6A12 12 0 0 0 12 3"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M12 11V9"/></svg>
       <h3 style="margin-top:8px">Área administrativa</h3>
     </div>
-    <input type="text" id="l-user" placeholder="Usuário" autocomplete="username">
-    <input type="password" id="l-pass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')tentarLogin()">
+    <div class="input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M6.168 18.849A4 4 0 0 1 10 17h4a4 4 0 0 1 3.834 2.855"/></svg>
+      <input type="text" id="l-user" placeholder="Usuário" autocomplete="username">
+    </div>
+    <div class="input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <input type="password" id="l-pass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')tentarLogin()">
+    </div>
     <div class="err" id="l-err"></div>
     <div class="modal-actions" style="margin-top:10px">
       <button onclick="fecharOverlay('ov-login')">Cancelar</button>
@@ -261,11 +295,20 @@
   <div class="modal" style="max-width:360px">
     <h3>Confirmar agendamento</h3>
     <div class="msub" id="ag-label">—</div>
-    <input type="text" id="ag-nome" placeholder="Nome completo" autocomplete="name">
+    <div class="input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0-8 0"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+      <input type="text" id="ag-nome" placeholder="Nome completo" autocomplete="name">
+    </div>
     <div class="err" id="ag-nome-err"></div>
-    <input type="text" id="ag-creci" placeholder="CRECI (somente números)" inputmode="numeric">
+    <div class="input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1"/><path d="M7 8v2"/><path d="M9.5 4H19a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9"/><path d="M11 13a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/></svg>
+      <input type="text" id="ag-creci" placeholder="CRECI (somente números)" inputmode="numeric">
+    </div>
     <div class="err" id="ag-creci-err"></div>
-    <input type="text" id="ag-rg" placeholder="RG (ex: 12345678-9)" inputmode="numeric">
+    <div class="input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 5m0 3a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="M3 10h18"/><path d="M7 15h.01"/><path d="M11 15h2"/></svg>
+      <input type="text" id="ag-rg" placeholder="RG (ex: 12345678-9)" inputmode="numeric">
+    </div>
     <div class="err" id="ag-rg-err"></div>
     <div class="modal-actions">
       <button onclick="fecharOverlay('ov-ag')">Cancelar</button>
@@ -283,21 +326,43 @@
     <p class="slabel" style="margin-top:0">Imagem de capa</p>
     <div class="upload-area" onclick="document.getElementById('ev-foto-input').click()">
       <img id="ev-foto-prev" class="upload-preview">
-      <div id="ev-foto-ph"><i class="ti ti-photo" style="font-size:24px;display:block;margin-bottom:6px" aria-hidden="true"></i>Toque para adicionar foto</div>
+      <div id="ev-foto-ph"><svg xmlns="http://www.w3.org/2000/svg" width="24.0px" height="24.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;display:block;margin-bottom:6px" aria-hidden="true"><path d="M5 7h1a2 2 0 0 0 2-2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2"/><path d="M9 13a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/></svg>Toque para adicionar foto</div>
     </div>
-    <button class="upload-remove" id="ev-foto-rem" onclick="removerFoto()"><i class="ti ti-x" aria-hidden="true"></i> Remover foto</button>
+    <button class="upload-remove" id="ev-foto-rem" onclick="removerFoto()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 3l18 18"/><path d="M15 8.111A4 4 0 0 0 8.111 15"/><path d="M6 6H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-1"/><path d="M18 12v-6a2 2 0 0 0-2-2H9"/></svg> Remover foto</button>
     <input type="file" id="ev-foto-input" accept="image/*" style="display:none" onchange="handleFoto(event)">
 
     <p class="slabel">Dados do imóvel</p>
-    <input type="text" id="ev-local" placeholder="Nome do local (ex: Condomínio Evidências)">
-    <input type="text" id="ev-end" placeholder="Endereço completo">
-    <input type="text" id="ev-unidade" placeholder="Apto / Casa (ex: Apto 301)">
-    <input type="date" id="ev-data">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <input type="time" id="ev-inicio" style="margin:0" title="Início">
-      <input type="time" id="ev-fim" style="margin:0" title="Fim">
+    <div class="ev-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+      <input type="text" id="ev-local" placeholder="Nome do local (ex: Condomínio Evidências)">
     </div>
-    <input type="number" id="ev-vagas" placeholder="Vagas padrão por horário" min="1" max="500">
+    <div class="ev-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg>
+      <input type="text" id="ev-end" placeholder="Endereço completo">
+    </div>
+    <div class="ev-input-wrap">
+      <!-- ícone: número da residência (hashtag/número) -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 9l14 0"/><path d="M5 15l14 0"/><path d="M11 4l-4 16"/><path d="M17 4l-4 16"/></svg>
+      <input type="text" id="ev-unidade" placeholder="Nº / Apto / Casa (ex: Apto 301, Casa 7)">
+    </div>
+    <div class="ev-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg>
+      <input type="date" id="ev-data">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="ev-input-wrap" style="margin:0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg>
+        <input type="time" id="ev-inicio" title="Início" style="margin:0">
+      </div>
+      <div class="ev-input-wrap" style="margin:0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M7 7.345A9 9 0 1 0 16.664 16.669"/><path d="M12 7v5l2.5 2.5"/><path d="M3 3l18 18"/></svg>
+        <input type="time" id="ev-fim" title="Fim" style="margin:0">
+      </div>
+    </div>
+    <div class="ev-input-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 1-3-3.87"/></svg>
+      <input type="number" id="ev-vagas" placeholder="Vagas padrão por horário" min="1" max="500">
+    </div>
     <div class="err" id="ev-err"></div>
     <div class="modal-actions">
       <button onclick="fecharOverlay('ov-evento')">Cancelar</button>
@@ -323,57 +388,77 @@
 <!-- ═══════════════ PAINEL ADMIN ═══════════════ -->
 <div id="scr-admin" class="screen">
   <div class="topbar">
-    <div class="topbar-title"><i class="ti ti-shield-check" style="font-size:15px;vertical-align:-2px;margin-right:5px" aria-hidden="true"></i>Painel admin</div>
+    <div class="topbar-title"><svg xmlns="http://www.w3.org/2000/svg" width="15.0px" height="15.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px;margin-right:5px" aria-hidden="true"><path d="M4 4m0 1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4m0 1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/><path d="M4 14m0 1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 14m0 1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z"/></svg>Painel admin</div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:12px;color:var(--text2)" id="adm-user-lbl">—</span>
-      <button class="btn" style="font-size:12px;padding:6px 11px" onclick="logout()"><i class="ti ti-logout" aria-hidden="true"></i> Sair</button>
+      <button class="btn" style="font-size:12px;padding:6px 11px" onclick="logout()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M13 12H3"/><path d="M9 15l-3-3l3-3"/><path d="M10 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M15 16l3-3l-3-3"/><path d="M15 6h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4"/></svg> Sair</button>
     </div>
   </div>
   <div class="tab-bar">
-    <div class="tab active" onclick="goTab('eventos')"><i class="ti ti-home" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Eventos</div>
-    <div class="tab" onclick="goTab('lista')"><i class="ti ti-list" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Lista</div>
-    <div class="tab" onclick="goTab('acesso')"><i class="ti ti-lock" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> Acesso</div>
+    <div class="tab active" onclick="goTab('eventos')"><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg> Eventos</div>
+    <div class="tab" onclick="goTab('acesso')"><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px" aria-hidden="true"><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1-4.069 0l-.301-.301l-6.558 6.558a2 2 0 0 1-1.414.586H4a1 1 0 0 1-1-1v-1.172a2 2 0 0 1 .586-1.414l6.558-6.558l-.301-.301a2.877 2.877 0 0 1 0-4.069l2.643-2.643a2.877 2.877 0 0 1 4.069 0z"/></svg> Acesso</div>
   </div>
 
   <!-- ABA EVENTOS -->
   <div id="page-eventos" class="page active">
     <div class="btn-row" style="margin-top:0;margin-bottom:1rem">
-      <button class="btn btn-primary" onclick="novoEvento()"><i class="ti ti-plus" aria-hidden="true"></i> Novo evento</button>
+      <button class="btn btn-primary" onclick="novoEvento()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 19H5a2 2 0 0 1-2-2V9.5L12 3l9 6.5V12"/><path d="M16 19h6"/><path d="M19 16v6"/></svg> Novo evento</button>
     </div>
-    <div id="adm-lista"></div>
-  </div>
-
-  <!-- ABA LISTA -->
-  <div id="page-lista" class="page">
-    <p class="slabel" style="margin-top:0">Evento</p>
-    <div class="field-group" style="margin-bottom:1rem">
-      <div class="field-row">
-        <label style="min-width:60px">Evento</label>
-        <select id="lista-sel" onchange="renderLista()" style="flex:1;border:none;background:transparent;font-size:14px;color:var(--text);outline:none;font-family:var(--font)"></select>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-      <button class="btn btn-danger" id="btn-travar" onclick="travarEvento()"><i class="ti ti-lock" aria-hidden="true"></i> Travar link</button>
-      <button class="btn btn-success" onclick="exportarCSV()"><i class="ti ti-download" aria-hidden="true"></i> Exportar CSV</button>
-    </div>
-    <div id="lista-banner"></div>
-    <div id="lista-resumo" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:1rem"></div>
-    <div id="lista-corpo"></div>
+    <div id="adm-lista" class="adm-ev-grid"></div>
   </div>
 
   <!-- ABA ACESSO -->
   <div id="page-acesso" class="page">
     <p class="slabel" style="margin-top:0">Alterar credenciais</p>
-    <div class="banner banner-warn"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Altere as credenciais padrão antes de usar.</div>
+    <div class="banner banner-warn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"/></svg> Altere as credenciais padrão antes de usar.</div>
     <div class="field-group">
-      <div class="field-row"><label>Novo usuário</label><input id="ac-user" type="text" placeholder="Novo usuário"></div>
-      <div class="field-row"><label>Senha atual</label><input id="ac-atual" type="password" placeholder="Senha atual"></div>
-      <div class="field-row"><label>Nova senha</label><input id="ac-nova" type="password" placeholder="Mín. 6 caracteres" oninput="checkPassReq()"></div>
-      <div class="field-row"><label>Confirmar</label><input id="ac-conf" type="password" placeholder="Repita a senha"></div>
+      <div class="field-row"><label><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px;margin-right:4px" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M6.168 18.849A4 4 0 0 1 10 17h4a4 4 0 0 1 3.834 2.855"/></svg>Novo usuário</label><input id="ac-user" type="text" placeholder="Novo usuário"></div>
+      <div class="field-row"><label><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px;margin-right:4px" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Senha atual</label><input id="ac-atual" type="password" placeholder="Senha atual"></div>
+      <div class="field-row"><label><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px;margin-right:4px" aria-hidden="true"><path d="M12 21H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.5"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>Nova senha</label><input id="ac-nova" type="password" placeholder="Mín. 6 caracteres" oninput="checkPassReq()"></div>
+      <div class="field-row"><label><svg xmlns="http://www.w3.org/2000/svg" width="14.0px" height="14.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-2px;margin-right:4px" aria-hidden="true"><path d="M11.5 21H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.5"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M15 19l2 2l4-4"/></svg>Confirmar</label><input id="ac-conf" type="password" placeholder="Repita a senha"></div>
     </div>
     <p class="pass-req" id="pass-req-msg">Mínimo 6 caracteres</p>
     <div class="err" id="ac-err"></div>
-    <div class="btn-row"><button class="btn btn-primary" onclick="alterarCreds()"><i class="ti ti-check" aria-hidden="true"></i> Salvar</button></div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="alterarCreds()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M6 4h10l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/><path d="M10 14a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M8 4v4h8V4"/></svg> Salvar</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL GERENCIAR EVENTO ═══════════════ -->
+<div class="overlay" id="ov-gerenciar" style="align-items:flex-start;padding-top:1rem">
+  <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto;padding:0">
+    <!-- Capa -->
+    <div id="ger-cover" style="width:100%;height:160px;background:var(--bg2);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;border-radius:var(--radius-lg) var(--radius-lg) 0 0">
+      <div style="font-size:48px;color:var(--text3)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg></div>
+      <button onclick="fecharOverlay('ov-gerenciar')" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button>
+    </div>
+    <div style="padding:1.25rem">
+      <!-- Info -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:18px;font-weight:700" id="ger-local">—</div>
+        <div style="font-size:14px;color:var(--text2);margin-top:2px" id="ger-unidade">—</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg><span id="ger-end">—</span></span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg><span id="ger-data">—</span></span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg><span id="ger-horario">—</span></span>
+        </div>
+      </div>
+      <!-- Resumo -->
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1rem">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Inscritos</div><div style="font-size:20px;font-weight:700" id="ger-total">0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Vagas totais</div><div style="font-size:20px;font-weight:700" id="ger-vagas">0</div></div>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Status</div><div style="font-size:13px;font-weight:700;margin-top:4px" id="ger-status">—</div></div>
+      </div>
+      <!-- Ações -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+        <button class="btn btn-primary" style="font-size:13px" onclick="editarEventoGer()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4"/><path d="M13.5 6.5l4 4"/></svg> Editar</button>
+        <button class="btn btn-success" style="font-size:13px" id="ger-btn-xlsx" onclick="exportarXLSX()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M11.5 20H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7.5"/><path d="M3 10h18"/><path d="M10 3v18"/><path d="M16 19h6"/><path d="M19 16l3 3l-3 3"/></svg> Exportar Excel</button>
+        <button class="btn" style="font-size:13px" id="ger-btn-travar" onclick="travarEventoGer()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Travar link</button>
+        <button class="btn btn-danger" style="font-size:13px" onclick="pedirRemoverGer()"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/><path d="M14 11l-4 6"/><path d="M10 11l4 6"/></svg> Remover</button>
+      </div>
+      <div id="ger-banner" style="margin-bottom:.75rem"></div>
+      <!-- Lista por horário -->
+      <div id="ger-lista-slots"></div>
+    </div>
   </div>
 </div>
 
@@ -435,12 +520,19 @@ function showOverlay(id) { document.getElementById(id).classList.add('show'); }
 function fecharOverlay(id) { document.getElementById(id).classList.remove('show'); }
 
 // ── HOME CORRETOR ──────────────────────────────────────────
+function eventoExpirado(ev) {
+  // Considera expirado se a data do evento já passou (comparando só a data, sem hora)
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const dataEv = new Date(ev.data + 'T00:00:00');
+  return dataEv < hoje;
+}
+
 function renderHome() {
   const el = document.getElementById('home-lista');
-  const ativos = eventos.filter(e => !e.removido);
+  const ativos = eventos.filter(e => !e.removido && !eventoExpirado(e));
   if (!ativos.length) {
-    el.innerHTML = `<div class="empty-msg" style="padding:3rem 1rem">
-      <i class="ti ti-calendar-off" style="font-size:36px;display:block;margin-bottom:10px;color:var(--text3)" aria-hidden="true"></i>
+    el.innerHTML = `<div class="empty-msg" style="padding:3rem 1rem;grid-column:1/-1">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36.0px" height="36.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;display:block;margin-bottom:10px;color:var(--text3)" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
       Nenhum evento disponível no momento.</div>`;
     return;
   }
@@ -448,24 +540,24 @@ function renderHome() {
     const disp = ev.slots.reduce((a,s) => a + Math.max(0, s.vagas - s.inscritos.length), 0);
     const cover = ev.foto
       ? `<img src="${ev.foto}" alt="Foto do imóvel ${ev.local}">`
-      : `<div class="ev-cover-ph"><i class="ti ti-home" aria-hidden="true"></i><span>Sem foto</span></div>`;
+      : `<div class="ev-cover-ph"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg><span>Sem foto</span></div>`;
     const badge = ev.travado
       ? `<span class="badge" style="background:rgba(0,0,0,.55);color:#fff">Encerrado</span>`
       : disp > 0
-        ? `<span class="badge" style="background:rgba(0,0,0,.50);color:#fff"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i> Vagas disponíveis</span>`
+        ? `<span class="badge" style="background:rgba(0,0,0,.50);color:#fff"><svg xmlns="http://www.w3.org/2000/svg" width="11.0px" height="11.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M13 12H3"/><path d="M6 9l-3 3l3 3"/><path d="M10 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M15 16l3-3l-3-3"/><path d="M21 12v-3a2 2 0 0 0-2-2h-6"/><path d="M21 12v3a2 2 0 0 1-2 2h-6"/></svg> Vagas disponíveis</span>`
         : `<span class="badge" style="background:rgba(0,0,0,.50);color:#fff">Esgotado</span>`;
     const cta = ev.travado
       ? `<div style="padding:11px;background:var(--bg2);border-radius:var(--radius);text-align:center;font-size:13px;color:var(--text3)">Agendamentos encerrados</div>`
-      : `<button class="ev-cta" onclick="abrirEvento('${ev.id}')"><i class="ti ti-calendar-check" aria-hidden="true"></i> Agendar minha visita</button>`;
+      : `<button class="ev-cta" onclick="abrirEvento('${ev.id}')"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12.5 21H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/><path d="M16 19h6"/><path d="M19 16v6"/></svg> Agendar minha visita</button>`;
     return `<div class="ev-card${ev.travado?' closed':''}">
       <div class="ev-cover">${cover}<div class="ev-cover-badge">${badge}</div></div>
       <div class="ev-body">
         <div class="ev-title">${ev.local}</div>
         <div class="ev-unidade">${ev.unidade}</div>
         <div class="ev-meta">
-          <div class="ev-meta-row"><i class="ti ti-map-pin" aria-hidden="true"></i><span>${ev.endereco||'—'}</span></div>
-          <div class="ev-meta-row"><i class="ti ti-calendar" aria-hidden="true"></i><span>${fmtData(ev.data)}</span></div>
-          <div class="ev-meta-row"><i class="ti ti-clock" aria-hidden="true"></i><span>${fmtH(ev.inicio)} às ${fmtH(ev.fim)}</span></div>
+          <div class="ev-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg><span>${ev.endereco||'—'}</span></div>
+          <div class="ev-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg><span>${fmtData(ev.data)}</span></div>
+          <div class="ev-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg><span>${fmtH(ev.inicio)} às ${fmtH(ev.fim)}</span></div>
         </div>
         ${cta}
       </div>
@@ -486,7 +578,7 @@ function abrirEvento(id) {
   const cover = document.getElementById('dt-cover');
   cover.innerHTML = ev.foto
     ? `<img src="${ev.foto}" alt="Foto do imóvel">`
-    : `<div class="detail-cover-ph"><i class="ti ti-home" aria-hidden="true"></i></div>`;
+    : `<div class="detail-cover-ph"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg></div>`;
   document.getElementById('dt-main').style.display = 'block';
   document.getElementById('dt-success').style.display = 'none';
   renderSlots();
@@ -654,11 +746,10 @@ function logout() { logado = false; mostrar('scr-home'); renderHome(); }
 // ── TABS ADMIN ─────────────────────────────────────────────
 function goTab(t) {
   document.querySelectorAll('#scr-admin .tab').forEach((el,i) => {
-    el.classList.toggle('active', ['eventos','lista','acesso'][i] === t);
+    el.classList.toggle('active', ['eventos','acesso'][i] === t);
   });
   document.querySelectorAll('#scr-admin .page').forEach(el => el.classList.remove('active'));
   document.getElementById('page-'+t).classList.add('active');
-  if (t === 'lista') { populaSelect(); renderLista(); }
   if (t === 'eventos') renderAdm();
 }
 
@@ -779,92 +870,94 @@ function confirmarRemover() {
   salvarEstado(); fecharOverlay('ov-remover'); renderAdm(); renderHome();
 }
 
-function toggleTravar(id) {
-  const ev = eventos.find(e => e.id === id); if (!ev) return;
-  if (!ev.travado && !confirm('Travar agendamentos de "'+ev.local+'"?')) return;
-  ev.travado = !ev.travado;
-  salvarEstado(); renderAdm(); renderHome(); renderLista();
-}
-
 function changeVagas(evId, si, v) {
   const ev = eventos.find(e => e.id === evId); if (!ev) return;
   ev.slots[si].vagas = Math.max(parseInt(v)||1, ev.slots[si].inscritos.length);
   salvarEstado(); renderAdm();
 }
 
-// ── RENDER ADMIN ───────────────────────────────────────────
+// ── RENDER ADMIN (grade) ───────────────────────────────────
 function renderAdm() {
   const el = document.getElementById('adm-lista');
-  if (!eventos.length) { el.innerHTML = '<div class="empty-msg">Nenhum evento criado ainda.</div>'; return; }
+  if (!eventos.length) { el.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Nenhum evento criado ainda.</div>'; return; }
   el.innerHTML = eventos.map(ev => {
     const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
     const totalV = ev.slots.reduce((a,s) => a+s.vagas, 0);
-    return `<div class="adm-ev-card">
-      <div class="adm-ev-head">
-        <div class="adm-thumb">${ev.foto ? `<img src="${ev.foto}" alt="">` : `<i class="ti ti-home" style="font-size:22px" aria-hidden="true"></i>`}</div>
-        <div class="adm-ev-info">
-          <div class="adm-ev-name">${ev.local}</div>
-          <div class="adm-ev-sub">${ev.unidade} · ${fmtData(ev.data)}</div>
-          <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">
-            <span class="badge badge-info">${total}/${totalV} inscritos</span>
-            ${ev.travado ? '<span class="badge badge-danger">Travado</span>' : '<span class="badge badge-success">Aberto</span>'}
-          </div>
+    const expirado = eventoExpirado(ev);
+    const coverHtml = ev.foto
+      ? `<img src="${ev.foto}" style="width:100%;height:100%;object-fit:cover" alt="">`
+      : `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text3)"><svg xmlns="http://www.w3.org/2000/svg" width="28.0px" height="28.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg></div>`;
+    return `<div class="adm-ev-card" style="cursor:pointer;display:flex;flex-direction:column" onclick="abrirGerenciar('${ev.id}')">
+      <div style="width:100%;height:110px;background:var(--bg2);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative">
+        ${coverHtml}
+        <div style="position:absolute;top:6px;right:6px;display:flex;gap:4px">
+          ${expirado ? '<span class="badge" style="background:rgba(0,0,0,.6);color:#fff;font-size:10px">Expirado</span>' : ev.travado ? '<span class="badge badge-danger" style="font-size:10px">Travado</span>' : '<span class="badge badge-success" style="font-size:10px">Aberto</span>'}
         </div>
       </div>
-      <div class="adm-ev-actions">
-        <button class="btn" style="font-size:12px;padding:6px 11px" onclick="editarEvento('${ev.id}')"><i class="ti ti-edit" aria-hidden="true"></i> Editar</button>
-        <button class="btn ${ev.travado?'btn-success':'btn-warning'}" style="font-size:12px;padding:6px 11px" onclick="toggleTravar('${ev.id}')">
-          ${ev.travado ? '<i class="ti ti-lock-open" aria-hidden="true"></i> Reabrir' : '<i class="ti ti-lock" aria-hidden="true"></i> Travar'}
-        </button>
-        <button class="btn btn-danger" style="font-size:12px;padding:6px 11px" onclick="pedirRemover('${ev.id}')"><i class="ti ti-trash" aria-hidden="true"></i> Remover</button>
+      <div style="padding:.75rem;flex:1;display:flex;flex-direction:column">
+        <div style="font-size:13px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.local}</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${ev.unidade} · ${fmtData(ev.data)}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:auto">
+          <span class="badge badge-info" style="font-size:10px">${total}/${totalV} inscritos</span>
+        </div>
       </div>
-      <div>
-        ${ev.slots.map((s,i) => `
-          <div class="adm-slot-row">
-            <div class="adm-slot-info">${fmtH(s.hora)}<span>${s.inscritos.length}/${s.vagas} inscritos</span></div>
-            <div style="display:flex;align-items:center;gap:6px">
-              <input class="adm-vagas-input" type="number" min="1" max="500" value="${s.vagas}" onchange="changeVagas('${ev.id}',${i},this.value)">
-              <span style="font-size:11px;color:var(--text2)">vagas</span>
-            </div>
-          </div>`).join('')}
+      <div style="border-top:0.5px solid var(--border);padding:.6rem .75rem;background:var(--bg2);font-size:12px;color:var(--info);font-weight:500;text-align:center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12.0px" height="12.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;vertical-align:-1px" aria-hidden="true"><path d="M4 10a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M6 4v4"/><path d="M6 12v8"/><path d="M10 16a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M12 4v10"/><path d="M12 18v2"/><path d="M16 7a2 2 0 1 0 4 0a2 2 0 0 0-4 0"/><path d="M18 4v1"/><path d="M18 9v11"/></svg> Gerenciar evento
       </div>
     </div>`;
   }).join('');
 }
 
-// ── LISTA ──────────────────────────────────────────────────
-function populaSelect() {
-  const sel = document.getElementById('lista-sel');
-  sel.innerHTML = eventos.length
-    ? eventos.map(ev => `<option value="${ev.id}">${ev.local} – ${ev.unidade} (${fmtData(ev.data)})</option>`).join('')
-    : '<option value="">Nenhum evento</option>';
-}
-function getEvSel() { return eventos.find(e => e.id === document.getElementById('lista-sel').value); }
+// ── MODAL GERENCIAR ────────────────────────────────────────
+let gerEvId = null;
 
-function renderLista() {
-  const ev = getEvSel();
-  const banner = document.getElementById('lista-banner');
-  const btn = document.getElementById('btn-travar');
-  if (!ev) {
-    document.getElementById('lista-resumo').innerHTML = '';
-    document.getElementById('lista-corpo').innerHTML = '<div class="empty-msg">Nenhum evento disponível.</div>';
-    banner.innerHTML = ''; return;
-  }
-  btn.innerHTML = ev.travado ? '<i class="ti ti-lock-open" aria-hidden="true"></i> Reabrir link' : '<i class="ti ti-lock" aria-hidden="true"></i> Travar link';
-  btn.className = 'btn ' + (ev.travado ? 'btn-success' : 'btn-danger');
-  banner.innerHTML = ev.travado ? '<div class="banner banner-warn"><i class="ti ti-lock" aria-hidden="true"></i> Agendamentos travados para este evento.</div>' : '';
+function abrirGerenciar(id) {
+  const ev = eventos.find(e => e.id === id); if (!ev) return;
+  gerEvId = id;
+  // Capa
+  const coverEl = document.getElementById('ger-cover');
+  const closeBtn = `<button onclick="fecharOverlay('ov-gerenciar')" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.45);border:none;color:#fff;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M18 6l-12 12"/><path d="M6 6l12 12"/></svg></button>`;
+  coverEl.innerHTML = (ev.foto ? `<img src="${ev.foto}" style="width:100%;height:100%;object-fit:cover">` : `<div style="font-size:48px;color:var(--text3)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg></div>`) + closeBtn;
+  // Info
+  document.getElementById('ger-local').textContent = ev.local;
+  document.getElementById('ger-unidade').textContent = ev.unidade;
+  document.getElementById('ger-end').textContent = ev.endereco || '—';
+  document.getElementById('ger-data').textContent = fmtData(ev.data);
+  document.getElementById('ger-horario').textContent = fmtH(ev.inicio)+' às '+fmtH(ev.fim);
   const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
   const totalV = ev.slots.reduce((a,s) => a+s.vagas, 0);
-  document.getElementById('lista-resumo').innerHTML = `
-    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Inscritos</div><div style="font-size:22px;font-weight:700">${total}</div></div>
-    <div style="background:var(--bg2);border-radius:var(--radius);padding:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:3px">Vagas totais</div><div style="font-size:22px;font-weight:700">${totalV}</div></div>`;
-  const corpo = document.getElementById('lista-corpo');
+  document.getElementById('ger-total').textContent = total;
+  document.getElementById('ger-vagas').textContent = totalV;
+  const statusEl = document.getElementById('ger-status');
+  if (eventoExpirado(ev)) { statusEl.textContent = 'Expirado'; statusEl.style.color = 'var(--text3)'; }
+  else if (ev.travado) { statusEl.textContent = 'Travado'; statusEl.style.color = 'var(--danger)'; }
+  else { statusEl.textContent = 'Aberto'; statusEl.style.color = 'var(--success)'; }
+  // Botão travar — atualiza visual sem perder o onclick
+  const btnTrv = document.getElementById('ger-btn-travar');
+  btnTrv.className = 'btn ' + (ev.travado ? 'btn-success' : 'btn-warning');
+  btnTrv.onclick = travarEventoGer;
+  const textoTrv = ev.travado ? ' Reabrir link' : ' Travar link';
+  const svgTrv = ev.travado
+    ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V6a4 4 0 0 1 8 0"/></svg>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  btnTrv.innerHTML = svgTrv + textoTrv;
+  btnTrv.onclick = travarEventoGer;
+  // Banner
+  document.getElementById('ger-banner').innerHTML = ev.travado
+    ? '<div class="banner banner-warn"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 13a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0-2 0"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Agendamentos travados para este evento.</div>' : '';
+  // Lista slots
+  renderGerSlots(ev);
+  showOverlay('ov-gerenciar');
+}
+
+function renderGerSlots(ev) {
+  const el = document.getElementById('ger-lista-slots');
   const temDados = ev.slots.some(s => s.inscritos.length > 0);
-  if (!temDados) { corpo.innerHTML = '<div class="empty-msg">Nenhum agendamento ainda.</div>'; return; }
-  corpo.innerHTML = ev.slots.filter(s => s.inscritos.length > 0).map(s => `
+  if (!temDados) { el.innerHTML = '<div class="empty-msg">Nenhum agendamento ainda.</div>'; return; }
+  el.innerHTML = ev.slots.filter(s => s.inscritos.length > 0).map(s => `
     <div style="margin-bottom:1rem">
       <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:7px">
-        <i class="ti ti-clock" style="font-size:13px" aria-hidden="true"></i>${fmtH(s.hora)}
+        <svg xmlns="http://www.w3.org/2000/svg" width="13.0px" height="13.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg>${fmtH(s.hora)}
         <span class="badge badge-info">${s.inscritos.length}/${s.vagas}</span>
       </div>
       <div class="card">
@@ -879,27 +972,61 @@ function renderLista() {
     </div>`).join('');
 }
 
-function travarEvento() {
-  const ev = getEvSel(); if (!ev) return;
-  if (!ev.travado && !confirm('Travar agendamentos deste evento?')) return;
-  ev.travado = !ev.travado;
-  salvarEstado(); renderAdm(); renderHome(); renderLista();
+function editarEventoGer() {
+  fecharOverlay('ov-gerenciar');
+  editarEvento(gerEvId);
 }
 
-function exportarCSV() {
-  const ev = getEvSel();
-  if (!ev) { alert('Selecione um evento.'); return; }
+function pedirRemoverGer() {
+  fecharOverlay('ov-gerenciar');
+  pedirRemover(gerEvId);
+}
+
+function travarEventoGer() {
+  const ev = eventos.find(e => e.id === gerEvId); if (!ev) return;
+  if (!ev.travado && !confirm('Travar agendamentos de "'+ev.local+'"?')) return;
+  ev.travado = !ev.travado;
+  salvarEstado(); renderAdm(); renderHome();
+  abrirGerenciar(gerEvId);
+}
+
+// ── EXPORTAR EXCEL REAL (xlsx via SheetJS) ────────────────
+function exportarXLSX() {
+  const ev = eventos.find(e => e.id === gerEvId); if (!ev) return;
   const total = ev.slots.reduce((a,s) => a+s.inscritos.length, 0);
   if (!total) { alert('Nenhum inscrito para exportar.'); return; }
-  // BOM UTF-8 para Excel
-  let csv = '\uFEFF' + 'Horário,Nome,CRECI,RG,Data/hora do cadastro\n';
-  ev.slots.forEach(s => s.inscritos.forEach(p => {
-    csv += `"${fmtH(s.hora)}","${p.nome}","${p.creci}","${p.rg}","${p.ts||'—'}"\n`;
-  }));
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
-  a.download = 'lista_portaria_'+ev.data+'_'+ev.local.replace(/\s/g,'_')+'.csv';
-  a.click();
+
+  // Montar array de objetos com cabeçalhos explícitos
+  const linhas = [];
+  ev.slots.forEach(s => {
+    s.inscritos.forEach(p => {
+      linhas.push({
+        'Horário':               fmtH(s.hora),
+        'Nome Completo':         p.nome,
+        'CRECI':                 p.creci,
+        'RG':                    p.rg,
+        'Data/Hora do Cadastro': p.ts || '—'
+      });
+    });
+  });
+
+  // Usar SheetJS (já carregado via CDN no <head>)
+  const ws = XLSX.utils.json_to_sheet(linhas);
+
+  // Largura das colunas
+  ws['!cols'] = [
+    { wch: 10 }, // Horário
+    { wch: 35 }, // Nome Completo
+    { wch: 12 }, // CRECI
+    { wch: 14 }, // RG
+    { wch: 22 }  // Data/Hora
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Agendamentos');
+
+  const nomeArquivo = 'lista_portaria_' + ev.data + '_' + ev.local.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'') + '.xlsx';
+  XLSX.writeFile(wb, nomeArquivo);
 }
 
 // ── ACESSO ─────────────────────────────────────────────────
