@@ -558,11 +558,8 @@ function salvarAdmin() {
 async function salvarEvento_db(ev) {
   try {
     const db = window._db; if (!db) return;
-    // Fotos ficam só no localStorage por tamanho — salvar sem foto no Firestore
-    const evSemFoto = { ...ev, foto: ev.foto ? '__local__' : null };
-    await window._fbSetDoc(window._fbDoc(db, 'eventos', ev.id), evSemFoto);
-    // Salvar foto separada no localStorage indexada por id
-    if (ev.foto) localStorage.setItem('iob_foto_'+ev.id, ev.foto);
+    // Foto já vem comprimida (< 750KB) — salvar direto no Firestore
+    await window._fbSetDoc(window._fbDoc(db, 'eventos', ev.id), ev);
   } catch(e) { console.warn('Firestore salvar:', e); }
 }
 
@@ -571,7 +568,6 @@ async function deletarEvento_db(id) {
   try {
     const db = window._db; if (!db) return;
     await window._fbDeleteDoc(window._fbDoc(db, 'eventos', id));
-    localStorage.removeItem('iob_foto_'+id);
   } catch(e) { console.warn('Firestore deletar:', e); }
 }
 
@@ -595,12 +591,7 @@ function iniciarListenerFirestore() {
   _unsubscribe = window._fbOnSnapshot(
     window._fbCollection(db, 'eventos'),
     (snapshot) => {
-      eventos = snapshot.docs.map(d => {
-        const ev = d.data();
-        // Reattach foto do localStorage
-        const foto = localStorage.getItem('iob_foto_'+ev.id);
-        return { ...ev, foto: foto || null };
-      });
+      eventos = snapshot.docs.map(d => d.data());
       renderHome();
       if (logado) renderAdm();
     },
@@ -624,11 +615,7 @@ async function carregarEstado() {
   if (window._db) {
     try {
       const snap = await window._fbGetDocs(window._fbCollection(window._db, 'eventos'));
-      eventos = snap.docs.map(d => {
-        const ev = d.data();
-        const foto = localStorage.getItem('iob_foto_'+ev.id);
-        return { ...ev, foto: foto || null };
-      });
+      eventos = snap.docs.map(d => d.data());
       iniciarListenerFirestore();
     } catch(e) {
       console.warn('Firestore carregar:', e);
@@ -904,11 +891,19 @@ function handleFoto(e) {
     img.onload = () => {
       const canvas = document.createElement('canvas');
       let w = img.width, h = img.height;
-      const MAX = 800;
+      // Comprimir para caber no Firestore (< 800KB)
+      const MAX = 600;
       if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h*MAX/w); w = MAX; } else { w = Math.round(w*MAX/h); h = MAX; } }
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      fotoTemp = canvas.toDataURL('image/jpeg', 0.75);
+      // Reduzir qualidade progressivamente até ficar abaixo de 750KB
+      let quality = 0.65;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > 750000 && quality > 0.2) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      fotoTemp = dataUrl;
       const prev = document.getElementById('ev-foto-prev');
       prev.src = fotoTemp; prev.style.display = 'block';
       document.getElementById('ev-foto-ph').style.display = 'none';
