@@ -6,6 +6,36 @@
 <title>Irmãs à Obra — Agendamento de Visitas</title>
 <!-- ícones SVG inline — sem dependência de CDN -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Firebase -->
+<script type="module" id="firebase-init">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getFirestore, doc, collection, setDoc, getDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhLcHZfSwVfv6I9TiYcKOf0gmaWcGvsOI",
+    authDomain: "irmas-a-obra.firebaseapp.com",
+    projectId: "irmas-a-obra",
+    storageBucket: "irmas-a-obra.firebasestorage.app",
+    messagingSenderId: "920008731770",
+    appId: "1:920008731770:web:846067d87409df826c9fc3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expõe funções de DB para o script principal
+  window._db = db;
+  window._fbDoc        = doc;
+  window._fbCollection = collection;
+  window._fbSetDoc     = setDoc;
+  window._fbGetDoc     = getDoc;
+  window._fbGetDocs    = getDocs;
+  window._fbDeleteDoc  = deleteDoc;
+  window._fbOnSnapshot = onSnapshot;
+
+  // Sinaliza que o Firebase está pronto
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
   :root {
     --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeece6;
@@ -101,6 +131,7 @@
 
   /* GRADE DE EVENTOS */
   .ev-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .ev-grid:empty, .ev-grid:has(> div[style*="width:100%"]) { display: block; }
   @media (max-width: 700px) { .ev-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; } }
   @media (max-width: 480px) { .ev-grid { grid-template-columns: 1fr; gap: .75rem; } }
 
@@ -262,9 +293,9 @@
     </div>
     <div class="detail-info">
       <div class="detail-title" id="dt-local">—</div>
-      <div class="detail-unidade" id="dt-unidade">—</div>
       <div class="detail-meta">
         <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg><span id="dt-end">—</span></div>
+        <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M5 9l14 0"/><path d="M5 15l14 0"/><path d="M11 4l-4 16"/><path d="M17 4l-4 16"/></svg><span id="dt-unidade">—</span></div>
         <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg><span id="dt-data">—</span></div>
         <div class="detail-meta-row"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0" aria-hidden="true"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0"/><path d="M12 7v5l3 3"/></svg><span id="dt-horario">—</span></div>
       </div>
@@ -515,20 +546,105 @@ function gerarSlots(ini, fim, v) {
   return s;
 }
 
-// ── PERSISTÊNCIA localStorage ──────────────────────────────
-function salvarEstado() {
-  try {
-    localStorage.setItem('iob_eventos', JSON.stringify(eventos));
-    localStorage.setItem('iob_admin', JSON.stringify(ADMIN));
-  } catch(e) {}
+// ── PERSISTÊNCIA FIRESTORE + localStorage (fallback) ──────
+let _unsubscribe = null; // listener em tempo real
+
+// Salva ADMIN apenas localmente (segurança)
+function salvarAdmin() {
+  try { localStorage.setItem('iob_admin', JSON.stringify(ADMIN)); } catch(e) {}
 }
-function carregarEstado() {
+
+// Salva evento no Firestore
+async function salvarEvento_db(ev) {
   try {
-    const ev = localStorage.getItem('iob_eventos');
+    const db = window._db; if (!db) return;
+    // Fotos ficam só no localStorage por tamanho — salvar sem foto no Firestore
+    const evSemFoto = { ...ev, foto: ev.foto ? '__local__' : null };
+    await window._fbSetDoc(window._fbDoc(db, 'eventos', ev.id), evSemFoto);
+    // Salvar foto separada no localStorage indexada por id
+    if (ev.foto) localStorage.setItem('iob_foto_'+ev.id, ev.foto);
+  } catch(e) { console.warn('Firestore salvar:', e); }
+}
+
+// Remove evento do Firestore
+async function deletarEvento_db(id) {
+  try {
+    const db = window._db; if (!db) return;
+    await window._fbDeleteDoc(window._fbDoc(db, 'eventos', id));
+    localStorage.removeItem('iob_foto_'+id);
+  } catch(e) { console.warn('Firestore deletar:', e); }
+}
+
+// Salva estado completo (chamado em mudanças de slots/inscritos)
+async function salvarEstado(evId) {
+  if (evId) {
+    // Salvar só o evento que mudou
+    const ev = eventos.find(e => e.id === evId);
+    if (ev) await salvarEvento_db(ev);
+  } else {
+    // Salvar todos
+    for (const ev of eventos) await salvarEvento_db(ev);
+  }
+  salvarAdmin();
+}
+
+// Inicia listener em tempo real do Firestore
+function iniciarListenerFirestore() {
+  if (_unsubscribe) _unsubscribe();
+  const db = window._db; if (!db) return;
+  _unsubscribe = window._fbOnSnapshot(
+    window._fbCollection(db, 'eventos'),
+    (snapshot) => {
+      eventos = snapshot.docs.map(d => {
+        const ev = d.data();
+        // Reattach foto do localStorage
+        const foto = localStorage.getItem('iob_foto_'+ev.id);
+        return { ...ev, foto: foto || null };
+      });
+      renderHome();
+      if (logado) renderAdm();
+    },
+    (err) => console.warn('Firestore listener:', err)
+  );
+}
+
+// Carrega estado inicial
+async function carregarEstado() {
+  // Carregar ADMIN do localStorage
+  try {
     const ad = localStorage.getItem('iob_admin');
-    if (ev) eventos = JSON.parse(ev);
     if (ad) ADMIN = JSON.parse(ad);
-  } catch(e) { eventos = []; }
+  } catch(e) {}
+
+  // Mostrar loading
+  document.getElementById('home-lista').innerHTML =
+    '<div style="width:100%;padding:3rem 1rem;text-align:center;color:var(--text3);font-size:13px">Carregando eventos...</div>';
+
+  // Tentar carregar do Firestore
+  if (window._db) {
+    try {
+      const snap = await window._fbGetDocs(window._fbCollection(window._db, 'eventos'));
+      eventos = snap.docs.map(d => {
+        const ev = d.data();
+        const foto = localStorage.getItem('iob_foto_'+ev.id);
+        return { ...ev, foto: foto || null };
+      });
+      iniciarListenerFirestore();
+    } catch(e) {
+      console.warn('Firestore carregar:', e);
+      // Fallback localStorage
+      try {
+        const ev = localStorage.getItem('iob_eventos');
+        if (ev) eventos = JSON.parse(ev);
+      } catch(e2) {}
+    }
+  } else {
+    // Fallback localStorage se Firebase não estiver pronto
+    try {
+      const ev = localStorage.getItem('iob_eventos');
+      if (ev) eventos = JSON.parse(ev);
+    } catch(e) {}
+  }
 }
 
 // ── NAVEGAÇÃO ──────────────────────────────────────────────
@@ -552,11 +668,16 @@ function renderHome() {
   const el = document.getElementById('home-lista');
   const ativos = eventos.filter(e => !e.removido && !eventoExpirado(e));
   if (!ativos.length) {
-    el.innerHTML = `<div class="empty-msg" style="padding:3rem 1rem;grid-column:1/-1">
-      <svg xmlns="http://www.w3.org/2000/svg" width="36.0px" height="36.0px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px;flex-shrink:0;display:block;margin-bottom:10px;color:var(--text3)" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
-      Nenhum evento disponível no momento.</div>`;
+    el.innerHTML = '';
+    el.style.display = 'block';
+    el.innerHTML = `<div style="width:100%;padding:4rem 1rem;text-align:center;color:var(--text3)">
+      <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 16px;opacity:.4" aria-hidden="true"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+      <div style="font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px">Nenhum evento disponível</div>
+      <div style="font-size:13px">Novos imóveis aparecerão aqui em breve.</div>
+    </div>`;
     return;
   }
+  el.style.display = 'grid';
   el.innerHTML = ativos.map(ev => {
     const disp = ev.slots.reduce((a,s) => a + Math.max(0, s.vagas - s.inscritos.length), 0);
     const cover = ev.foto
@@ -708,7 +829,7 @@ function confirmarVaga() {
 
   const ts = new Date().toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' });
   s.inscritos.push({ nome, creci, rg, ts });
-  salvarEstado();
+  salvarEstado(eventoAtivo.id);
 
   sucInfo = { nome, hora: s.hora, local: eventoAtivo.local, unidade: eventoAtivo.unidade, data: eventoAtivo.data };
   fecharOverlay('ov-ag');
@@ -871,7 +992,8 @@ function salvarEvento() {
   } else {
     eventos.push({ id: uid(), local, endereco: end, unidade, data, inicio: ini, fim, vagasPadrao: vagas, slots: gerarSlots(ini, fim, vagas), travado: false, foto: fotoTemp });
   }
-  salvarEstado();
+  const evIdSalvo = evEditId || eventos[eventos.length-1].id;
+  salvarEstado(evIdSalvo);
   fecharOverlay('ov-evento');
   renderAdm(); renderHome();
 }
@@ -887,14 +1009,15 @@ function pedirRemover(id) {
   showOverlay('ov-remover');
 }
 function confirmarRemover() {
+  deletarEvento_db(remEvId);
   eventos = eventos.filter(e => e.id !== remEvId);
-  salvarEstado(); fecharOverlay('ov-remover'); renderAdm(); renderHome();
+  salvarAdmin(); fecharOverlay('ov-remover'); renderAdm(); renderHome();
 }
 
 function changeVagas(evId, si, v) {
   const ev = eventos.find(e => e.id === evId); if (!ev) return;
   ev.slots[si].vagas = Math.max(parseInt(v)||1, ev.slots[si].inscritos.length);
-  salvarEstado(); renderAdm();
+  salvarEstado(evId); renderAdm();
 }
 
 // ── RENDER ADMIN (grade) ───────────────────────────────────
@@ -1007,7 +1130,7 @@ function travarEventoGer() {
   const ev = eventos.find(e => e.id === gerEvId); if (!ev) return;
   if (!ev.travado && !confirm('Travar agendamentos de "'+ev.local+'"?')) return;
   ev.travado = !ev.travado;
-  salvarEstado(); renderAdm(); renderHome();
+  salvarEstado(gerEvId); renderAdm(); renderHome();
   abrirGerenciar(gerEvId);
 }
 
@@ -1070,7 +1193,7 @@ function alterarCreds() {
   if (nova !== conf) { err.className='err'; err.textContent = 'As senhas não coincidem.'; return; }
   ADMIN = { user: novoU, passHash: btoa(nova) };
   document.getElementById('adm-user-lbl').textContent = novoU;
-  salvarEstado();
+  salvarAdmin();
   err.className='ok'; err.textContent = '✓ Credenciais atualizadas!';
   ['ac-user','ac-atual','ac-nova','ac-conf'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pass-req-msg').className = 'pass-req';
@@ -1079,8 +1202,27 @@ function alterarCreds() {
 }
 
 // ── INIT ───────────────────────────────────────────────────
-carregarEstado();
-renderHome();
+async function init() {
+  await carregarEstado();
+  renderHome();
+}
+
+// Aguardar Firebase estar pronto antes de iniciar
+if (window._db) {
+  init();
+} else {
+  window.addEventListener('firebase-ready', init, { once: true });
+  // Timeout de segurança: se Firebase demorar mais de 4s, carrega com localStorage
+  setTimeout(() => {
+    if (eventos.length === 0) {
+      try {
+        const ev = localStorage.getItem('iob_eventos');
+        if (ev) eventos = JSON.parse(ev);
+      } catch(e) {}
+      renderHome();
+    }
+  }, 4000);
+}
 </script>
 </div>
 </body>
